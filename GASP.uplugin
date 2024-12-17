@@ -12,6 +12,7 @@
 	"SupportURL": "",
 	"CanContainContent": true,
 	"IsBetaVersion": true,
+	"EnabledByDefault": true,
 	"IsExperimentalVersion": false,
 	"Installed": false,
 	"Modules": [
@@ -40,6 +41,10 @@
 		},
 		{
 			"Name": "Chooser",
+			"Enabled": true
+		},
+		{
+			"Name": "BlendStack",
 			"Enabled": true
 		},
 		{

@@ -35,14 +35,34 @@ UCLASS()
 class GASP_API UGASPCharacterMovementComponent : public UCharacterMovementComponent
 {
 	GENERATED_BODY()
+	
+	class GASP_API FGASPCharacterNetworkMoveData final : public FCharacterNetworkMoveData
+	{
+		using Super = FCharacterNetworkMoveData;
 
-	class FSavedMove_Base final : public FSavedMove_Character
+	public:
+		uint8 bSavedRotationModeUpdate : 1;
+		EGait SavedGait{};
+		ERotationMode SavedRotationMode{};
+		
+		virtual void ClientFillNetworkMoveData(const FSavedMove_Character& Move, ENetworkMoveType MoveType) override;
+	};
+	
+	class GASP_API FGASPCharacterNetworkMoveDataContainer final : public FCharacterNetworkMoveDataContainer
+	{
+	public:
+		TStaticArray<FGASPCharacterNetworkMoveData, 3> MoveData;
+		
+		FGASPCharacterNetworkMoveDataContainer();
+	};
+	
+	class GASP_API FGASPSavedMove final : public FSavedMove_Character
 	{
 		typedef FSavedMove_Character Super;
 
+	public:
 		// Flags
 		uint8 bSavedRotationModeUpdate : 1;
-
 		EGait SavedGait{};
 		ERotationMode SavedRotationMode{};
 
@@ -51,9 +71,11 @@ class GASP_API UGASPCharacterMovementComponent : public UCharacterMovementCompon
 		virtual uint8 GetCompressedFlags() const override;
 		virtual void SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel, FNetworkPredictionData_Client_Character& ClientData) override;
 		virtual void PrepMoveFor(ACharacter* C) override;
+		virtual void CombineWith(const FSavedMove_Character* OldMove, ACharacter* InCharacter, APlayerController* PC,
+			const FVector& OldStartLocation) override;
 	};
 
-	class FNetworkPredictionData_Client_Base : public FNetworkPredictionData_Client_Character
+	class GASP_API FNetworkPredictionData_Client_Base : public FNetworkPredictionData_Client_Character
 	{
 	public:
 		FNetworkPredictionData_Client_Base(const UCharacterMovementComponent& ClientMovement);
@@ -66,9 +88,17 @@ class GASP_API UGASPCharacterMovementComponent : public UCharacterMovementCompon
 	virtual FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 
 protected:
+	
+	FGASPCharacterNetworkMoveDataContainer MoveDataContainer;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float InAirRotationYaw{ 200.f };
+
+	virtual void PhysicsRotation(float DeltaTime) override;
+
 	EGait SafeGait{};
 	ERotationMode SafeRotationMode{};
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FGaitSettings GaitSettings;
 
 	virtual void UpdateFromCompressedFlags(uint8 Flags) override;
@@ -82,11 +112,11 @@ public:
 	
 	virtual void OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation, const FVector& OldVelocity) override;
 	virtual void OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode) override;
-	virtual float CalculateMaxAcceleration();
 	virtual float CalculateGroundFriction();
-	virtual float CalculateBrakingDecelerationWalking();
 	virtual void PhysWalking(float deltaTime, int32 Iterations) override;
-	virtual bool HasMovementInputVector();
+	virtual float GetMaxAcceleration() const override;
+	virtual float GetMaxBrakingDeceleration() const override;
+	virtual bool HasMovementInputVector() const;
 	void UpdateRotationMode();
 
 	void SetGait(EGait NewGait);
@@ -96,7 +126,7 @@ public:
 	void SetRotationMode(ERotationMode NewRotationMode);
 	UFUNCTION(Server, Reliable)
 	void Server_SetRotationMode(ERotationMode NewRotationMode);
-
+	
 	FORCEINLINE void SetGaitSettings(const FGaitSettings& NewGaitSettings)
 	{
 		GaitSettings = NewGaitSettings;

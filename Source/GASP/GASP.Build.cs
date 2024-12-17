@@ -7,10 +7,13 @@ public class GASP : ModuleRules
 	public GASP(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+		IncludeOrderVersion = EngineIncludeOrderVersion.Latest;
 		
-		PublicDependencyModuleNames.AddRange(new string[] { "Core" });
+		bEnableNonInlinedGenCppWarnings = true;
 		
-		PrivateDependencyModuleNames.AddRange(new string[] { "CoreUObject", "Engine", "MotionTrajectory", 
-			"PoseSearch", "Chooser", "AnimationWarpingRuntime", "BlendStack" });
+		PublicDependencyModuleNames.AddRange(new string[] { "CoreUObject", "Core", "Engine", "UMG" });
+		
+		PrivateDependencyModuleNames.AddRange(new string[] { "MotionTrajectory", 
+			"PoseSearch", "Chooser", "AnimationWarpingRuntime", "BlendStack", "NetCore" });
 	}
 }

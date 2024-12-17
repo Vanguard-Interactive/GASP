@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
-#include "Animation/MovementAnimInstanceProxy.h"
+#include "Animation/GASPAnimInstanceProxy.h"
 #include "Animation/AnimExecutionContext.h"
 #include "Animation/AnimNodeReference.h"
 #include "BoneControllers/AnimNode_FootPlacement.h"
@@ -23,88 +23,79 @@ UCLASS()
 class GASP_API UGASPAnimInstance : public UAnimInstance
 {
 	GENERATED_BODY()
-	
-
-	virtual FAnimInstanceProxy* CreateAnimInstanceProxy() override
-	{
-		return new FMovementAnimInstanceProxy(this);
-	}
 
 	FTimerHandle LandedTimer;
 
 protected:
-
+	
 	/*************
 	* References *
 	*************/
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Transient)
 	TWeakObjectPtr<class AGASPCharacter> CachedCharacter{};
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Transient)
 	TWeakObjectPtr<class UGASPCharacterMovementComponent> CachedMovement{};
-
+	
 	/******************
 	* Character state *
 	******************/
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Transient)
 	FGait Gait{};
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Transient)
 	FAnimCurves AnimNames{};
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	EStanceMode StanceMode{EStanceMode::Stand};
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Transient)
+	EMovementDirection MovementDirection{ EMovementDirection::F };
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Transient)
+	FStanceMode StanceMode{};
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient)
 	FMovementState MovementState{};
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient)
 	FRotationMode RotationMode{};
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient)
 	FMovementMode MovementMode{};
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Information")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character Information", Transient)
 	FCharacterInfo CharacterInfo{};
 
-	UPROPERTY(BlueprintReadOnly)
+	
+	UPROPERTY(BlueprintReadOnly, Transient)
+	FStanceMode PreviousStanceMode{};
+	UPROPERTY(BlueprintReadOnly, Transient)
 	FGait PreviousGait{};
-
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Transient)
 	FMovementState PreviousMovementState{};
-
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Transient)
 	FRotationMode PreviousRotationMode{};
-
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Transient)
 	FMovementMode PreviousMovementMode{};
-
-	UPROPERTY(BlueprintReadOnly, Category = "Character Information")
+	UPROPERTY(BlueprintReadOnly, Category = "Character Information", Transient)
 	FCharacterInfo PreviousCharacterInfo{};
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Motion Matching")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Motion Matching", Transient)
 	FMotionMatchingInfo MotionMatching{};
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	TObjectPtr<class UChooserTable> LocomotionTable;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	FPoseSearchQueryTrajectory Trajectory;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	FPoseSearchTrajectoryData TrajectoryGenerationData_Idle;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	FPoseSearchTrajectoryData TrajectoryGenerationData_Moving;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	FFootPlacementPlantSettings PlantSettings_Default;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	FFootPlacementPlantSettings PlantSettings_Stops;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	FFootPlacementInterpolationSettings InterpolationSettings_Default;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	FFootPlacementInterpolationSettings InterpolationSettings_Stops;
+	UPROPERTY(BlueprintReadOnly,Transient)
+	TEnumAsByte<ENetRole> NetRole{};
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Transient)
+	TObjectPtr<class UChooserTable> LocomotionTable{};
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Transient)
+	FPoseSearchQueryTrajectory Trajectory{};
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Transient)
+	FPoseSearchTrajectoryData TrajectoryGenerationData_Idle{};
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Transient)
+	FPoseSearchTrajectoryData TrajectoryGenerationData_Moving{};
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Transient)
+	FFootPlacementPlantSettings PlantSettings_Default{};
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Transient)
+	FFootPlacementPlantSettings PlantSettings_Stops{};
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Transient)
+	FFootPlacementInterpolationSettings InterpolationSettings_Default{};
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Transient)
+	FFootPlacementInterpolationSettings InterpolationSettings_Stops{};
 	
 	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
 	bool isStarting() const;
@@ -131,99 +122,88 @@ protected:
 	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
 	float GetTrajectoryTurnAngle() const;
 	
-	// TODO
 	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
 	FVector2D GetLeanAmount() const;
 	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
 	FVector GetRelativeAcceleration() const;
-
-	UFUNCTION(BlueprintCallable, meta = (BlueprintThreadSafe))
-	float GetYawOffset() const;
-
-	UFUNCTION(BlueprintCallable, meta = (BlueprintThreadSafe))
-	float GetPitchOffset() const;
-
-	UFUNCTION(BlueprintCallable, meta = (BlueprintThreadSafe))
-	void RefreshMotionMatchingMovement(const FAnimUpdateContext& Context, const FAnimNodeReference& Node);
-
-	UFUNCTION(BlueprintCallable, meta = (BlueprintThreadSafe))
-	void RefreshMatchingPostSelection(const FAnimUpdateContext& Context, const FAnimNodeReference& Node);
-
-	UFUNCTION(BlueprintCallable, meta = (BlueprintThreadSafe))
-	void RefreshOffsetRoot(const FAnimUpdateContext& Context, const FAnimNodeReference& Node);
-
 	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
 	FQuat GetDesiredFacing() const;
-
+	
+	UFUNCTION(BlueprintCallable, meta = (BlueprintThreadSafe))
+	void RefreshMotionMatchingMovement(const FAnimUpdateContext& Context, const FAnimNodeReference& Node);
+	UFUNCTION(BlueprintCallable, meta = (BlueprintThreadSafe))
+	void RefreshMatchingPostSelection(const FAnimUpdateContext& Context, const FAnimNodeReference& Node);
+	UFUNCTION(BlueprintCallable, meta = (BlueprintThreadSafe))
+	void RefreshOffsetRoot(const FAnimUpdateContext& Context, const FAnimNodeReference& Node);
 	UFUNCTION(BlueprintCallable, meta = (BlueprintThreadSafe))
 	void RefreshBlendStack(const FAnimUpdateContext& Context, const FAnimNodeReference& Node);
-
 	UFUNCTION(BlueprintCallable, meta = (BluepruntThreadSafe))
-	void RefreshEssentialValues(float DeltaSeconds);
+	void RefreshEssentialValues(const float DeltaSeconds);
+
 	/**************
 	* Aim Offsets *
 	**************/
 	UFUNCTION(BlueprintPure, meta = (BluepruntThreadSafe))
-	bool isEnabledAO();
+	bool isEnabledAO() const;
 	UFUNCTION(BlueprintPure, meta = (BluepruntThreadSafe))
-	FVector2D Get_AOValue() const;
+	FVector2D GetAOValue() const;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Transient)
 	float HeavyLandSpeedThreshold{ 700.f };
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Transient)
 	bool bLanded{ false };
-	UPROPERTY(BlueprintReadOnly)
-	int32 MMDatabaseLOD{ };
-	UPROPERTY(BlueprintReadOnly)
-	bool OffsetRootBoneEnabled{ };
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Transient)
+	int32 MMDatabaseLOD{ 0 };
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Transient)
+	uint8 OffsetRootBoneEnabled : 1 { false };
 
 	UFUNCTION()
 	void OnLanded(const FHitResult& HitResult);
 
 	UFUNCTION(BlueprintPure, meta = (BluepruntThreadSafe))
 	EPoseSearchInterruptMode GetMatchingInterruptMode() const;
-
 	UFUNCTION(BlueprintPure, meta = (BluepruntThreadSafe))
 	EOffsetRootBoneMode GetOffsetRootRotationMode() const;
-
 	UFUNCTION(BlueprintPure, meta = (BluepruntThreadSafe))
 	EOffsetRootBoneMode GetOffsetRootTranslationMode() const;
 	UFUNCTION(BlueprintPure, meta = (BluepruntThreadSafe))
 	float GetOffsetRootTranslationHalfLife() const;
-
 	UFUNCTION(BlueprintPure, meta = (BluepruntThreadSafe))
 	EOrientationWarpingSpace GetOrientationWarpingSpace() const;
 
 	UFUNCTION(BlueprintPure, meta = (BluepruntThreadSafe))
 	bool IsEnableSteering() const;
-	UPROPERTY(BlueprintReadOnly, meta = (BlueprintThreadSafe))
+	UPROPERTY(BlueprintReadWrite, Transient)
 	FPoseSearchTrajectory_WorldCollisionResults CollisionResults;
+	
 public:
 
+	UGASPAnimInstance() = default;
+
 	virtual void NativeBeginPlay() override;
+	virtual void NativeInitializeAnimation() override;
 	virtual void NativeThreadSafeUpdateAnimation(float DeltaSeconds) override;
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 	virtual void PreUpdateAnimation(float DeltaSeconds) override;
-	virtual void BeginDestroy() override;
 
 	UFUNCTION(BlueprintCallable, meta = (BlueprintThreadSafe))
-	virtual void RefreshCharacterInfo();
-
+	virtual void RefreshCVar();
+	
 	UFUNCTION(BlueprintCallable, meta = (BlueprintThreadSafe))
-	virtual void RefreshMotionMatchingInfo();
-
+	void RefreshTrajectory(float DeltaSeconds);
 	UFUNCTION(BlueprintCallable, meta = (BlueprintThreadSafe))
-	void GenerateTrajectory(float DeltaSeconds);
-
+	void RefreshMovementDirection(float DeltaSeconds);
+	
 	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
 	float GetMatchingBlendTime() const;
-
 	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
 	FFootPlacementPlantSettings GetPlantSettings() const;
-
 	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
 	FFootPlacementInterpolationSettings GetPlantInterpolationSettings() const;
 
 	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
-	float Get_MatchingNotifyRecencyTimeOut();
+	float GetMatchingNotifyRecencyTimeOut() const;
+
+	FORCEINLINE FCharacterInfo GetCharacterInfo() const { return CharacterInfo; }
+	
 };

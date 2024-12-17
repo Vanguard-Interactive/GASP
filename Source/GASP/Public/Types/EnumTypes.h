@@ -8,7 +8,7 @@
 /**
  * Movement gait
  */
-UENUM(BlueprintType)
+UENUM(BlueprintType, meta=(ScriptName="EGait"))
 enum class EGait : uint8
 {
 	Walk,
@@ -19,7 +19,7 @@ enum class EGait : uint8
 /**
  * 
  */
-UENUM(BlueprintType)
+UENUM(BlueprintType, meta=(ScriptName="ERotationMode"))
 enum class ERotationMode : uint8
 {
 	OrientToMovement,
@@ -29,7 +29,7 @@ enum class ERotationMode : uint8
 /**
  *
  */
-UENUM(BlueprintType)
+UENUM(BlueprintType, meta=(ScriptName="ECMovementMode"))
 enum class ECMovementMode : uint8
 {
 	OnGround,
@@ -39,7 +39,7 @@ enum class ECMovementMode : uint8
 /**
  *
  */
-UENUM(BlueprintType)
+UENUM(BlueprintType, meta=(ScriptName="EMovementState"))
 enum class EMovementState : uint8
 {
 	Idle,
@@ -49,9 +49,20 @@ enum class EMovementState : uint8
 /**
  * Movement gait
  */
-UENUM(BlueprintType)
+UENUM(BlueprintType, meta=(ScriptName="EStanceMode"))
 enum class EStanceMode : uint8
 {
 	Stand,
 	Crouch
+};
+
+UENUM(BlueprintType, meta=(ScriptName="EMovementDirection"))
+enum class EMovementDirection : uint8
+{
+	F UMETA(DisplayName = "Forward"),
+	B UMETA(DisplayName = "Forward"),
+	LL UMETA(DisplayName = "Left"),
+	LR UMETA(DisplayName = "Left->Right"),
+	RL UMETA(DisplayName = "Right->Left"),
+	RR UMETA(DisplayName = "Right"),
 };

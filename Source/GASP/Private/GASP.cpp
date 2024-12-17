@@ -2,7 +2,7 @@
 
 #include "GASP.h"
 
-#define LOCTEXT_NAMESPACE "FGASPModule"
+#define LOCTEXT_NAMESPACE "GASPModule"
 
 void FGASPModule::StartupModule()
 {

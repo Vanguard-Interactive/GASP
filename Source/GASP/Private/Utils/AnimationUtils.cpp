@@ -1,22 +1,22 @@
 
 #include "Utils/AnimationUtils.h"
 
-float UAnimationUtils::CalculateDirection(const FVector& Velocity, const FTransform& ActorTransform)
+float UAnimationUtils::CalculateDirection(const FVector& Velocity, const FRotator& ActorRotation)
 {
-	if (Velocity.IsNearlyZero())
+	if (Velocity.IsNearlyZero() || ActorRotation.IsNearlyZero())
 	{
 		return 0.f;
 	}
 
-	// Получаем Forward и Right векторы из ActorTransform
-	const FVector ForwardVector = ActorTransform.GetRotation().GetForwardVector();
-	const FVector RightVector = ActorTransform.GetRotation().GetRightVector();
+	// Get Forward and Right vectors from ActorRotation
+	const FVector ForwardVector = FRotationMatrix(ActorRotation).GetUnitAxis(EAxis::X);
+	const FVector RightVector = FRotationMatrix(ActorRotation).GetUnitAxis(EAxis::Y);
 
-	// Проецируем вектор скорости на направляющие векторы
+	// Projection speed vector to direction vector
 	const float ForwardDot = FVector::DotProduct(ForwardVector, Velocity.GetSafeNormal2D());
 	const float RightDot = FVector::DotProduct(RightVector, Velocity.GetSafeNormal2D());
 
-	// Вычисляем угол в градусах и возвращаем его
+	// Get angle in degrees
 	return FMath::Atan2(RightDot, ForwardDot) * (180.f / PI);
 }
 
