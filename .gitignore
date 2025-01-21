@@ -35,6 +35,7 @@
 *.xcodeproj
 *.xcworkspace
 *.sln
+*.sln.DotSettings.user
 *.suo
 *.opensdf
 *.sdf
@@ -72,3 +73,13 @@ Plugins/**/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+
+.idea
+
+# VSCode Cache Directory
+.vscode
+# VSCode History Files
+**/.history
+
+# VS config 
+.vsconfig
