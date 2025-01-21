@@ -10,7 +10,7 @@ class GASP_API UAnimationUtils : public UObject
 
 public:
 	UAnimationUtils() = default;
-	
+
 	UFUNCTION(BlueprintCallable)
 	static float CalculateDirection(const FVector& Velocity, const FRotator& ActorRotation);
 };

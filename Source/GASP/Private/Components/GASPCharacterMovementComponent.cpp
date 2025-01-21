@@ -1,27 +1,33 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Components/GASPCharacterMovementComponent.h"
+#include "Curves/CurveVector.h"
 #include "GameFramework/Character.h"
+
+#include UE_INLINE_GENERATED_CPP_BY_NAME(GASPCharacterMovementComponent)
 
 UGASPCharacterMovementComponent::UGASPCharacterMovementComponent()
 {
-	SetNetworkMoveDataContainer(MoveDataContainer);
-
 	bRunPhysicsWithNoController = true;
-	bAllowPhysicsRotationDuringAnimRootMotion = true;
 	bNetworkAlwaysReplicateTransformUpdateTimestamp = true;
-	
+
 	RotationRate = FRotator(0.f, -1.f, 0.f);
-	BrakingDecelerationWalking = 1500.f;
-	MinAnalogWalkSpeed = 150.f;
-	MaxWalkSpeed = 500.f;
-	GroundFriction = 5.f;
 	BrakingFrictionFactor = 1.f;
 	BrakingFriction = 0.f;
+	BrakingDecelerationWalking = 1500.f;
+	GroundFriction = 5.f;
+	MinAnalogWalkSpeed = 150.f;
+	MaxWalkSpeed = 500.f;
 	MaxAcceleration = 800.f;
 	PerchRadiusThreshold = 20.0f;
 	bUseFlatBaseForFloorChecks = true;
 	bUseSeparateBrakingFriction = true;
+	bCanWalkOffLedgesWhenCrouching = true;
+
+	NavAgentProps.bCanCrouch = true;
+
+	NavMovementProperties.bUseAccelerationForPaths = true;
+	SetCrouchedHalfHeight(60.f);
 }
 
 void UGASPCharacterMovementComponent::FGASPCharacterNetworkMoveData::ClientFillNetworkMoveData(
@@ -29,45 +35,40 @@ void UGASPCharacterMovementComponent::FGASPCharacterNetworkMoveData::ClientFillN
 {
 	Super::ClientFillNetworkMoveData(Move, MoveType);
 
-	const FGASPSavedMove& SavedMove{static_cast<const FGASPSavedMove&>(Move)};
+	const FGASPSavedMove& SavedMove{ StaticCast<const FGASPSavedMove&>(Move) };
 
 	SavedRotationMode = SavedMove.SavedRotationMode;
 	SavedGait = SavedMove.SavedGait;
 }
 
-UGASPCharacterMovementComponent::FGASPCharacterNetworkMoveDataContainer::FGASPCharacterNetworkMoveDataContainer()
+bool UGASPCharacterMovementComponent::FGASPSavedMove::CanCombineWith(const FSavedMovePtr& NewMove,
+	ACharacter* InCharacter, float MaxDelta) const
 {
-	NewMoveData = &MoveData[0];
-	PendingMoveData = &MoveData[1];
-	OldMoveData = &MoveData[2];
-}
+	const FGASPSavedMove* NewCombineMove{ StaticCast<FGASPSavedMove*>(NewMove.Get()) };
 
-bool UGASPCharacterMovementComponent::FGASPSavedMove::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter, float MaxDelta) const
-{
-	const FGASPSavedMove* NewCombineMove = StaticCast<FGASPSavedMove*>(NewMove.Get());
-	
 	return SavedRotationMode == NewCombineMove->SavedRotationMode && SavedGait == NewCombineMove->SavedGait &&
 		Super::CanCombineWith(NewMove, InCharacter, MaxDelta);
 }
 
 void UGASPCharacterMovementComponent::FGASPSavedMove::CombineWith(const FSavedMove_Character* OldMove,
-	ACharacter* InCharacter, APlayerController* PC, const FVector& OldStartLocation)
+	ACharacter* InCharacter, APlayerController* PC,
+	const FVector& OldStartLocation)
 {
-	const auto OriginalRotation{OldMove->StartRotation};
-	const auto OriginalRelativeRotation{OldMove->StartAttachRelativeRotation};
-	
-	const auto* NewUpdatedComponent{InCharacter->GetCharacterMovement()->UpdatedComponent.Get()};
-	
-	auto* MutablePreviousMove{const_cast<FSavedMove_Character*>(OldMove)};
-	
+	const auto OriginalRotation{ OldMove->StartRotation };
+	const auto OriginalRelativeRotation{ OldMove->StartAttachRelativeRotation };
+
+	const auto* NewUpdatedComponent{ InCharacter->GetCharacterMovement()->UpdatedComponent.Get() };
+
+	auto* MutablePreviousMove{ const_cast<FSavedMove_Character*>(OldMove) };
+
 	MutablePreviousMove->StartRotation = NewUpdatedComponent->GetComponentRotation();
 	MutablePreviousMove->StartAttachRelativeRotation = NewUpdatedComponent->GetRelativeRotation();
-	
+
 	Super::CombineWith(OldMove, InCharacter, PC, OldStartLocation);
-	
+
 	MutablePreviousMove->StartRotation = OriginalRotation;
 	MutablePreviousMove->StartAttachRelativeRotation = OriginalRelativeRotation;
-	}
+}
 
 void UGASPCharacterMovementComponent::FGASPSavedMove::Clear()
 {
@@ -90,11 +91,14 @@ uint8 UGASPCharacterMovementComponent::FGASPSavedMove::GetCompressedFlags() cons
 	return Result;
 }
 
-void UGASPCharacterMovementComponent::FGASPSavedMove::SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel, FNetworkPredictionData_Client_Character& ClientData)
+void UGASPCharacterMovementComponent::FGASPSavedMove::SetMoveFor(ACharacter* C, float InDeltaTime,
+	FVector const& NewAccel,
+	FNetworkPredictionData_Client_Character& ClientData)
 {
 	Super::SetMoveFor(C, InDeltaTime, NewAccel, ClientData);
 
-	const UGASPCharacterMovementComponent* CharacterMovement = Cast<UGASPCharacterMovementComponent>(C->GetCharacterMovement());
+	const UGASPCharacterMovementComponent* CharacterMovement{
+		Cast<UGASPCharacterMovementComponent>(C->GetCharacterMovement()) };
 
 	if (CharacterMovement)
 	{
@@ -108,7 +112,8 @@ void UGASPCharacterMovementComponent::FGASPSavedMove::PrepMoveFor(ACharacter* C)
 {
 	Super::PrepMoveFor(C);
 
-	UGASPCharacterMovementComponent* CharacterMovement = Cast<UGASPCharacterMovementComponent>(C->GetCharacterMovement());
+	UGASPCharacterMovementComponent* CharacterMovement{
+		Cast<UGASPCharacterMovementComponent>(C->GetCharacterMovement()) };
 
 	CharacterMovement->SafeGait = SavedGait;
 	CharacterMovement->SafeRotationMode = SavedRotationMode;
@@ -131,7 +136,7 @@ FNetworkPredictionData_Client* UGASPCharacterMovementComponent::GetPredictionDat
 
 	if (!ClientPredictionData)
 	{
-		UGASPCharacterMovementComponent* MutableThis = const_cast<UGASPCharacterMovementComponent*>(this);
+		UGASPCharacterMovementComponent* MutableThis = const_cast<ThisClass*>(this);
 
 		MutableThis->ClientPredictionData = new FNetworkPredictionData_Client_Base(*this);
 		MutableThis->ClientPredictionData->MaxSmoothNetUpdateDist = 92.f;
@@ -141,17 +146,6 @@ FNetworkPredictionData_Client* UGASPCharacterMovementComponent::GetPredictionDat
 	return ClientPredictionData;
 }
 
-void UGASPCharacterMovementComponent::PhysicsRotation(float DeltaTime)
-{
-	Super::PhysicsRotation(DeltaTime);
-
-	if (IsMovingOnGround())
-	{
-		// UE_LOG(LogTemp, Display, TEXT(""))
-		MaxWalkSpeed = GaitSettings.GetMappedSpeed(SafeGait, Velocity, GetLastUpdateRotation());
-	}
-}
-
 void UGASPCharacterMovementComponent::UpdateFromCompressedFlags(uint8 Flags)
 {
 	Super::UpdateFromCompressedFlags(Flags);
@@ -159,44 +153,59 @@ void UGASPCharacterMovementComponent::UpdateFromCompressedFlags(uint8 Flags)
 	bSafeRotationModeUpdate = (Flags & FSavedMove_Character::FLAG_Custom_0) != 0;
 }
 
-void UGASPCharacterMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation, const FVector& OldVelocity)
-{
-	Super::OnMovementUpdated(DeltaSeconds, OldLocation, OldVelocity);
-
-	if (!CharacterOwner) return;
-
-	if (IsMovingOnGround())
-	{
-		if (bSafeRotationModeUpdate)
-		{
-			UpdateRotationMode();
-			bSafeRotationModeUpdate = false;
-		}
-	}
-}
-
-void UGASPCharacterMovementComponent::OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode)
+void UGASPCharacterMovementComponent::OnMovementModeChanged(EMovementMode PreviousMovementMode,
+	uint8 PreviousCustomMode)
 {
 	Super::OnMovementModeChanged(PreviousMovementMode, PreviousCustomMode);
 
 	if (IsMovingOnGround() || IsFalling())
 	{
-		RotationRate = FRotator(0.f,  IsFalling() ? InAirRotationYaw : -1.f, 0.f);
+		RotationRate = FRotator(0.f, IsFalling() ? InAirRotationYaw : -1.f, 0.f);
 	}
 }
 
-float UGASPCharacterMovementComponent::CalculateGroundFriction()
+void UGASPCharacterMovementComponent::PhysicsRotation(float DeltaTime)
 {
-	if (SafeGait == EGait::Run || SafeGait == EGait::Walk) return MovementInformation.GroundFriction;
-	
-	return FMath::GetMappedRangeValueClamped<float, float>({ 0.f, StaticCast<float>(GaitSettings.GetSpeedForGait(EGait::Run).X) },
-		{ MovementInformation.GroundFriction, 3.f }, Velocity.Size2D());
+	if (HasAnimRootMotion())
+		return;
+	Super::PhysicsRotation(DeltaTime);
+}
+
+void UGASPCharacterMovementComponent::PhysNavWalking(float deltaTime, int32 Iterations)
+{
+	if (GaitSettings.GetMovementCurve())
+	{
+		GroundFriction = GaitSettings.GetMovementCurve()->GetVectorValue(GetMappedSpeed()).Z;
+	}
+
+	if (bSafeRotationModeUpdate)
+	{
+		UpdateRotationMode();
+		bSafeRotationModeUpdate = false;
+	}
+
+	float& SpeedToUpdate{ IsCrouching() ? MaxWalkSpeedCrouched : MaxWalkSpeed };
+	SpeedToUpdate = GaitSettings.GetSpeed(SafeGait, Velocity, GetLastUpdateRotation(), IsCrouching());
+
+	Super::PhysNavWalking(deltaTime, Iterations);
 }
 
 void UGASPCharacterMovementComponent::PhysWalking(float deltaTime, int32 Iterations)
 {
-	GroundFriction = CalculateGroundFriction();
-	
+	if (GaitSettings.GetMovementCurve())
+	{
+		GroundFriction = GaitSettings.GetMovementCurve()->GetVectorValue(GetMappedSpeed()).Z;
+	}
+
+	if (bSafeRotationModeUpdate)
+	{
+		UpdateRotationMode();
+		bSafeRotationModeUpdate = false;
+	}
+
+	float& SpeedToUpdate{ IsCrouching() ? MaxWalkSpeedCrouched : MaxWalkSpeed };
+	SpeedToUpdate = GaitSettings.GetSpeed(SafeGait, Velocity, GetLastUpdateRotation(), IsCrouching());
+
 	Super::PhysWalking(deltaTime, Iterations);
 }
 
@@ -227,18 +236,20 @@ void UGASPCharacterMovementComponent::Server_SetGait_Implementation(const EGait 
 
 void UGASPCharacterMovementComponent::SetGait(const EGait NewGait)
 {
-	if (PawnOwner->IsLocallyControlled())
+	if (SafeGait == NewGait)
+		return;
+
+	SafeGait = NewGait;
+	if (GetCharacterOwner()->GetLocalRole() == ROLE_AutonomousProxy)
 	{
-		SafeGait = NewGait;
-		if (GetCharacterOwner()->GetLocalRole() == ROLE_AutonomousProxy)
-		{
-			Server_SetGait(NewGait);
-		}
+		Server_SetGait(NewGait);
 	}
 }
 
 void UGASPCharacterMovementComponent::SetRotationMode(const ERotationMode NewRotationMode)
 {
+	if (SafeRotationMode == NewRotationMode)
+		return;
 	if (PawnOwner->IsLocallyControlled())
 	{
 		SafeRotationMode = NewRotationMode;
@@ -262,17 +273,42 @@ void UGASPCharacterMovementComponent::Server_SetRotationMode_Implementation(cons
 
 float UGASPCharacterMovementComponent::GetMaxAcceleration() const
 {
-	return FMath::GetMappedRangeValueClamped<float, float>({ 300.f, StaticCast<float>(
-		GaitSettings.GetSpeedForGait(EGait::Sprint).X) }, { MovementInformation.MaxAcceleration,
-			300.f }, Velocity.Size2D());
+	if (!IsMovingOnGround() || !IsValid(GaitSettings.GetMovementCurve()))
+		return Super::GetMaxAcceleration();
+
+	return GaitSettings.GetMovementCurve()->GetVectorValue(GetMappedSpeed()).X;
 }
 
 float UGASPCharacterMovementComponent::GetMaxBrakingDeceleration() const
 {
-	if (IsMovingOnGround())
+	if (!IsMovingOnGround() || !IsValid(GaitSettings.GetMovementCurve()))
+		return Super::GetMaxBrakingDeceleration();
+
+	return GaitSettings.GetMovementCurve()->GetVectorValue(GetMappedSpeed()).Y;
+}
+
+float UGASPCharacterMovementComponent::GetMappedSpeed() const
+{
+	float WalkSpeed = GaitSettings.GetSpeed(EGait::Walk, Velocity, GetLastUpdateRotation());
+	float RunSpeed = GaitSettings.GetSpeed(EGait::Run, Velocity, GetLastUpdateRotation());
+	float SprintSpeed = GaitSettings.GetSpeed(EGait::Sprint, Velocity, GetLastUpdateRotation());
+
+	const auto Speed{ UE_REAL_TO_FLOAT(Velocity.Size2D()) };
+
+	if (IsCrouching())
 	{
-		return HasMovementInputVector() ? MovementInformation.MovingMaxBrakingDeceleration :
-        		MovementInformation.NotMovingMaxBrakingDeceleration;
+		float CrouchedSpeed = GaitSettings.GetSpeed(SafeGait, Velocity, GetLastUpdateRotation(), IsCrouching());
+		return FMath::GetMappedRangeValueClamped<float, float>({ 0.f, CrouchedSpeed }, { 0.0f, 1.0f }, Speed);
 	}
-	return Super::GetMaxBrakingDeceleration();
+
+	if (Speed > RunSpeed)
+	{
+		return FMath::GetMappedRangeValueClamped<float, float>({ RunSpeed, SprintSpeed }, { 2.0f, 3.0f }, Speed);
+	}
+	if (Speed > WalkSpeed)
+	{
+		return FMath::GetMappedRangeValueClamped<float, float>({ WalkSpeed, RunSpeed }, { 1.0f, 2.0f }, Speed);
+	}
+
+	return FMath::GetMappedRangeValueClamped<float, float>({ 0.0f, WalkSpeed }, { 0.0f, 1.0f }, Speed);
 }

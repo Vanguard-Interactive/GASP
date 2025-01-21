@@ -9,10 +9,10 @@
 #include "StructTypes.generated.h"
 
 /**
- * For work with gait in Character or CharacterMovementComponent or other
+ *
  */
 USTRUCT(BlueprintType)
-struct FGait
+struct GASP_API FGait
 {
 	GENERATED_BODY()
 
@@ -23,9 +23,18 @@ struct FGait
 		*this = InitialGait;
 	}
 
-	const bool& isWalk() const { return bWalk; }
-	const bool& isRun() const { return bRun; }
-	const bool& isSprint() const { return bSprint; }
+	const bool& IsWalk() const
+	{
+		return bWalk;
+	}
+	const bool& IsRun() const
+	{
+		return bRun;
+	}
+	const bool& IsSprint() const
+	{
+		return bSprint;
+	}
 
 	void operator=(const EGait NewGate)
 	{
@@ -35,66 +44,90 @@ struct FGait
 		bSprint = Gait == EGait::Sprint;
 	}
 
-	operator EGait() const { return Gait; }
+	operator EGait() const
+	{
+		return Gait;
+	}
+
 protected:
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
-	bool bWalk = false;
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
-	bool bRun = true;
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
-	bool bSprint = false;
 	UPROPERTY(BlueprintReadOnly)
+	bool bWalk = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bRun = true;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bSprint = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	EGait Gait{ EGait::Run };
 };
 
 /**
- * For work with speed character
+ *
  */
 USTRUCT(BlueprintType)
-struct FGaitSettings
+struct GASP_API FGaitSettings
 {
 	GENERATED_BODY()
 
-	FVector GetSpeedForGait(EGait Gait) const
+	float GetSpeed(const EGait Gait, const FVector& Velocity, const FRotator& ActorRotation, bool bIsCrouched = false) const
 	{
-		static const FVector GaitSpeeds[] = { WalkSpeed, RunSpeed, SprintSpeed };
+		const FVector& SpeedRange{ bIsCrouched ? CrouchSpeed : GetSpeedRangeForGait(Gait) };
+		return UE_REAL_TO_FLOAT(InterpolateSpeedForDirection(SpeedRange, Velocity, ActorRotation));
+	}
+
+	UCurveVector* GetMovementCurve() const
+	{
+		return MovementCurve.Get();
+	}
+
+	FVector GetSpeedRangeForGait(EGait Gait) const
+	{
+		static const FVector GaitSpeeds[]{ WalkSpeed, RunSpeed, SprintSpeed };
 		return Gait >= EGait::Walk && Gait <= EGait::Sprint ? GaitSpeeds[static_cast<int32>(Gait)] : RunSpeed;
 	}
 
-	float GetMappedSpeed(const EGait NewGait, const FVector& Velocity, const FRotator& ActorRotation) const
+	float InterpolateSpeedForDirection(const FVector& SpeedRange, const FVector& Velocity, const FRotator& ActorRotation) const
 	{
-		const float Dir = UAnimationUtils::CalculateDirection(Velocity, ActorRotation);
-		const float StrafeSpeedMap = StrafeCurve.IsValid() ? StrafeCurve->GetFloatValue(FMath::Abs(Dir)): 0.f;
-		const FVector Speed = GetSpeedForGait(NewGait);
-		FVector2f OutRange{}, InRange{};
+		const float Dir{ UAnimationUtils::CalculateDirection(Velocity, ActorRotation) };
+		const float StrafeSpeedMap{ StrafeCurve.IsValid() ? StrafeCurve->GetFloatValue(FMath::Abs(Dir)) : 0.f };
+
 		if (StrafeSpeedMap < 1.f)
 		{
-			OutRange = FVector2f(Speed.X, Speed.Y);
-			InRange = FVector2f(0.f, 1.f);
+			return FMath::Lerp(SpeedRange.X, SpeedRange.Y, StrafeSpeedMap);
 		}
-		else
-		{
-			OutRange = FVector2f(Speed.Y, Speed.Z);
-			InRange = FVector2f(1.f, 2.f);
-		} 
-		return FMath::GetMappedRangeValueClamped(InRange, OutRange, StrafeSpeedMap);
+
+		return FMath::Lerp(SpeedRange.Y, SpeedRange.Z, StrafeSpeedMap - 1.f);
 	}
 
 protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Description = "X = Forward Speed, Y = Backwards Speed"))
+	FVector WalkSpeed{ 200.f, 180.f, 150.f };
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Description = "X = Forward Speed, Y = Strafe Speed, Z = Backwards Speed"))
-	FVector WalkSpeed{200.f, 175.f, 150.f};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Description = "X = Forward Speed, Y = Strafe Speed, Z = Backwards Speed"))
-	FVector RunSpeed{450.f, 400.f, 350.f};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly , meta = (Description = "X = Forward Speed, Y = Strafe Speed, Z = Backwards Speed"))
-	FVector SprintSpeed{ 700.f, 700.f, 700.f };
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Description = "X = Forward Speed, Y = Backwards Speed"))
+	FVector RunSpeed{ 450.f, 400.f, 350.f };
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Description = "X = Forward Speed, Y = Backwards Speed"))
+	FVector SprintSpeed{ 700.f, 0.f, 0.f };
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (Description = "X = Forward Speed, Y = Backwards Speed"))
+	FVector CrouchSpeed{ 225.f, 200.f, 180.f };
+
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TWeakObjectPtr<UCurveFloat> StrafeCurve{nullptr};
+	TWeakObjectPtr<UCurveFloat> StrafeCurve{};
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TWeakObjectPtr<class UCurveVector> MovementCurve{};
 };
 
+/**
+ *
+ */
 USTRUCT(BlueprintType)
-struct FRotationMode
+struct GASP_API FRotationMode
 {
 	GENERATED_BODY()
 
@@ -105,28 +138,52 @@ struct FRotationMode
 		*this = InitialRotationMode;
 	}
 
-	const bool& isStrafe() const { return bStrafe; }
-	const bool& isOrientToMovement() const { return bOrientToMovement; }
+	const bool& IsStrafe() const
+	{
+		return bStrafe;
+	}
+	const bool& IsOrientToMovement() const
+	{
+		return bOrientToMovement;
+	}
+
+	const bool& IsAim() const
+	{
+		return bAim;
+	}
 
 	void operator=(const ERotationMode NewRotationMode)
 	{
 		RotationMode = NewRotationMode;
 		bStrafe = RotationMode == ERotationMode::Strafe;
 		bOrientToMovement = RotationMode == ERotationMode::OrientToMovement;
+		bAim = RotationMode == ERotationMode::Aim;
 	}
 
-	operator ERotationMode() const { return RotationMode; }
+	operator ERotationMode() const
+	{
+		return RotationMode;
+	}
+
 protected:
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
-	bool bStrafe = true;
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
-	bool bOrientToMovement = false;
 	UPROPERTY(BlueprintReadOnly)
+	bool bStrafe = true;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bOrientToMovement = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bAim = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	ERotationMode RotationMode{ ERotationMode::Strafe };
 };
 
+/**
+ *
+ */
 USTRUCT(BlueprintType)
-struct FMovementState
+struct GASP_API FMovementState
 {
 	GENERATED_BODY()
 
@@ -137,8 +194,14 @@ struct FMovementState
 		*this = InitialMovementState;
 	}
 
-	const bool& isIdle() const { return bIdle; }
-	const bool& isMoving() const { return bMoving; }
+	const bool& IsIdle() const
+	{
+		return bIdle;
+	}
+	const bool& IsMoving() const
+	{
+		return bMoving;
+	}
 
 	void operator=(const EMovementState NewMovementState)
 	{
@@ -147,19 +210,27 @@ struct FMovementState
 		bMoving = MovementState == EMovementState::Moving;
 	}
 
-	operator EMovementState() const { return MovementState; }
+	operator EMovementState() const
+	{
+		return MovementState;
+	}
+
 protected:
-	
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
-	bool bIdle = true;
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
-	bool bMoving = false;
 	UPROPERTY(BlueprintReadOnly)
+	bool bIdle = true;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bMoving = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	EMovementState MovementState{ EMovementState::Idle };
 };
 
+/**
+ *
+ */
 USTRUCT(BlueprintType)
-struct FMovementMode
+struct GASP_API FMovementMode
 {
 	GENERATED_BODY()
 
@@ -170,8 +241,14 @@ struct FMovementMode
 		*this = InitialMovementMode;
 	}
 
-	const bool& isOnGround() const { return bOnGround; }
-	const bool& isInAir() const { return bInAir; }
+	const bool& IsOnGround() const
+	{
+		return bOnGround;
+	}
+	const bool& IsInAir() const
+	{
+		return bInAir;
+	}
 
 	void operator=(const ECMovementMode NewMovementMode)
 	{
@@ -180,19 +257,27 @@ struct FMovementMode
 		bInAir = MovementMode == ECMovementMode::InAir;
 	}
 
-	operator ECMovementMode() const { return MovementMode; }
-	
+	operator ECMovementMode() const
+	{
+		return MovementMode;
+	}
+
 protected:
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
-	bool bOnGround{ true };
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
-	bool bInAir{ false };
 	UPROPERTY(BlueprintReadOnly)
+	bool bOnGround{ true };
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bInAir{ false };
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	ECMovementMode MovementMode{ ECMovementMode::OnGround };
 };
 
+/**
+ *
+ */
 USTRUCT(BlueprintType)
-struct FStanceMode
+struct GASP_API FStanceMode
 {
 	GENERATED_BODY()
 
@@ -203,8 +288,14 @@ struct FStanceMode
 		*this = InitialMovementMode;
 	}
 
-	const bool& isStand() const { return bStand; }
-	const bool& isCrouch() const { return bCrouch; }
+	const bool& IsStand() const
+	{
+		return bStand;
+	}
+	const bool& IsCrouch() const
+	{
+		return bCrouch;
+	}
 
 	void operator=(const EStanceMode NewStanceMode)
 	{
@@ -213,70 +304,97 @@ struct FStanceMode
 		bCrouch = StanceMode == EStanceMode::Crouch;
 	}
 
-	operator EStanceMode() const { return StanceMode; }
-	
+	operator EStanceMode() const
+	{
+		return StanceMode;
+	}
+
 protected:
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
-	bool bStand{ true };
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
-	bool bCrouch{ false };
 	UPROPERTY(BlueprintReadOnly)
+	bool bStand{ true };
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bCrouch{ false };
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	EStanceMode StanceMode{ EStanceMode::Stand };
 };
 
+/**
+ *
+ */
 USTRUCT(BlueprintType)
-struct FCharacterInfo
+struct GASP_API FCharacterInfo
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	float MaxTurnAngle{ 50.f };
-	UPROPERTY(EditAnywhere,BlueprintReadOnly)
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float Speed{ 0.f };
-	UPROPERTY(EditAnywhere,BlueprintReadOnly)
-	FVector Velocity{ FVector::ZeroVector };
-	UPROPERTY(EditAnywhere,BlueprintReadOnly)
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float Direction{ 0.f };
-	UPROPERTY(EditAnywhere,BlueprintReadOnly)
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FVector Velocity{ FVector::ZeroVector };
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FVector Acceleration{ FVector::ZeroVector };
-	UPROPERTY(EditAnywhere,BlueprintReadOnly)
-	bool HasVelocity{ false };
-	UPROPERTY(EditAnywhere,BlueprintReadOnly)
-	FTransform RootTransform{ };
-	UPROPERTY(EditAnywhere,BlueprintReadOnly)
-	FTransform ActorTransform{ };
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FTransform RootTransform{ FTransform::Identity };
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FTransform ActorTransform{ FTransform::Identity };
 };
 
+/**
+ *
+ */
 USTRUCT(BlueprintType)
-struct FMotionMatchingInfo
+struct GASP_API FMotionMatchingInfo
 {
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadOnly)
-	TWeakObjectPtr<const class UPoseSearchDatabase> PoseSearchDatabase{ };
+	TWeakObjectPtr<const class UPoseSearchDatabase> PoseSearchDatabase{};
+
 	UPROPERTY(BlueprintReadOnly)
 	FVector FutureVelocity{ FVector::ZeroVector };
+
 	UPROPERTY(BlueprintReadOnly)
 	FVector CurrentVelocity{ FVector::ZeroVector };
+
 	UPROPERTY(BlueprintReadOnly)
 	FVector PreviousVelocity{ FVector::ZeroVector };
+
 	UPROPERTY(BlueprintReadOnly)
 	FVector LastNonZeroVector{ FVector::ZeroVector };
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TArray<FName> DatabaseTags{ };
-	UPROPERTY(BlueprintReadOnly, meta = (ClampMin=0))
+	TArray<FName> DatabaseTags{};
+
+	UPROPERTY(BlueprintReadOnly, meta = (ClampMin = 0))
 	float OrientationAlpha{ .2f };
+
 	UPROPERTY(BlueprintReadOnly)
 	float PreviousDesiredYawRotation{ 0.f };
+
 	UPROPERTY(BlueprintReadOnly)
 	float AnimTime{ 0.f };
+
 	UPROPERTY(BlueprintReadOnly)
 	TWeakObjectPtr<class UAnimationAsset> AnimAsset;
 };
 
-
+/**
+ *
+ */
 USTRUCT(BlueprintType)
-struct FAnimCurves
+struct GASP_API FAnimCurves
 {
 	GENERATED_BODY()
 
@@ -294,4 +412,154 @@ struct FAnimCurves
 	FName TurnInPlaceTag{ TEXT("TurnInPlace") };
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FName PivotsTag{ TEXT("Pivots") };
+};
+
+USTRUCT(BlueprintType)
+struct GASP_API FMovementDirectionThreshold
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float FL{ -60.f };
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float FR{ 60.f };
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float BL{ -120.f };
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float BR{ 120.f };
+};
+
+USTRUCT(BlueprintType)
+struct GASP_API FBlendStackInputs
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TWeakObjectPtr<class UAnimationAsset> AnimationAsset{};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	bool Loop{ false };
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float StartTime{ 0.f };
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float BlendTime{ 0.f };
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TWeakObjectPtr<class UBlendProfile> BlendProfile{};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TArray<FName> DatabaseTags{};
+};
+
+USTRUCT(BlueprintType)
+struct GASP_API FCharacterInputState
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	uint8 bWantsToAim : 1 {false};
+};
+
+USTRUCT(BlueprintType)
+struct GASP_API FOverlaySettings
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TWeakObjectPtr<UAnimInstance> OverlayInstance;
+};
+
+USTRUCT(BlueprintType)
+struct GASP_API FLayeringState
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "", Meta = (ClampMin = 0, ClampMax = 1))
+	float HeadAdditiveBlendAmount{ 0.0f };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "", Meta = (ClampMin = 0, ClampMax = 1))
+	float ArmLeftAdditiveBlendAmount{ 0.0f };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "", Meta = (ClampMin = 0, ClampMax = 1))
+	float ArmLeftLocalSpaceBlendAmount{ 0.0f };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "", Meta = (ClampMin = 0, ClampMax = 1))
+	float ArmLeftMeshSpaceBlendAmount{ 0.0f };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "", Meta = (ClampMin = 0, ClampMax = 1))
+	float ArmRightAdditiveBlendAmount{ 0.0f };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "", Meta = (ClampMin = 0, ClampMax = 1))
+	float ArmRightLocalSpaceBlendAmount{ 0.0f };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "", Meta = (ClampMin = 0, ClampMax = 1))
+	float ArmRightMeshSpaceBlendAmount{ 0.0f };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "", Meta = (ClampMin = 0, ClampMax = 1))
+	float HandLeftBlendAmount{ 0.0f };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "", Meta = (ClampMin = 0, ClampMax = 1))
+	float HandRightBlendAmount{ 0.0f };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "", Meta = (ClampMin = 0, ClampMax = 1))
+	float EnableHandLeftIKBlend{ 0.0f };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "", Meta = (ClampMin = 0, ClampMax = 1))
+	float EnableHandRightIKBlend{ 0.0f };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "", Meta = (ClampMin = 0, ClampMax = 1))
+	float SpineAdditiveBlendAmount{ 0.0f };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "", Meta = (ClampMin = 0, ClampMax = 1))
+	float PelvisBlendAmount{ 0.0f };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "", Meta = (ClampMin = 0, ClampMax = 1))
+	float LegsBlendAmount{ 0.0f };
+};
+USTRUCT(BlueprintType)
+struct GASP_API FLayeringNames
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "")
+	FName LayeringLegsSlotName{ TEXT("Layering_Legs") };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "")
+	FName LayeringPelvisSlotName{ TEXT("Layering_Pelvis") };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "")
+	FName LayeringHeadSlotName{ TEXT("Layering_Head") };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "")
+	FName LayeringSpineAdditiveName{ TEXT("Layering_Spine_Add") };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "")
+	FName LayeringHeadAdditiveName{ TEXT("Layering_Head_Add") };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "")
+	FName LayeringArmLeftAdditiveName{ TEXT("Layering_Arm_L_Add") };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "")
+	FName LayeringArmRightAdditiveName{ TEXT("Layering_Arm_R_Add") };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "")
+	FName LayeringHandLeftName{ TEXT("Layering_Hand_L") };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "")
+	FName LayeringHandRightName{ TEXT("Layering_Hand_R") };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "")
+	FName LayeringHandLeftIKName{ TEXT("Enable_HandIK_L") };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "")
+	FName LayeringArmLeftName{ TEXT("Layering_Arm_L") };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "")
+	FName LayeringHandRightIKName{ TEXT("Enable_HandIK_R") };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "")
+	FName LayeringArmRightName{ TEXT("Layering_Arm_R") };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "")
+	FName LayeringArmLeftLocalSpaceName{ TEXT("Layering_Arm_L_LS") };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "")
+	FName LayeringArmRightLocalSpaceName{ TEXT("Layering_Arm_R_LS") };
 };
