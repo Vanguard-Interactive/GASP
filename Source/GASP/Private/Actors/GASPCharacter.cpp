@@ -1,305 +1,428 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Actors/GASPCharacter.h"
+
+#include "GameplayTagContainer.h"
 #include "Components/GASPCharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GASPCharacter)
 
+void AGASPCharacter::OnRep_Acceleration()
+{
+	// ReplicatedCurrentAcceleration = MovementComponent->GetCurrentAcceleration();
+	const bool IsMoving = !MovementComponent->Velocity.IsNearlyZero(0.1f) && !ReplicatedAcceleration.IsZero();
+	SetMovementState(IsMoving ? EMovementState::Moving : EMovementState::Idle);
+}
+
 // Sets default values
 AGASPCharacter::AGASPCharacter(const FObjectInitializer& ObjectInitializer)
-    : Super(ObjectInitializer.SetDefaultSubobjectClass<UGASPCharacterMovementComponent>(CharacterMovementComponentName))
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UGASPCharacterMovementComponent>(CharacterMovementComponentName))
 {
-    // Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need
-    // it.
-    PrimaryActorTick.bCanEverTick = true;
+	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need
+	// it.
+	PrimaryActorTick.bCanEverTick = true;
+	bUseControllerRotationRoll = bUseControllerRotationPitch = bUseControllerRotationYaw = false;
 
-    bUseControllerRotationRoll = bUseControllerRotationPitch = bUseControllerRotationYaw = false;
+	bReplicates = true;
+	SetReplicatingMovement(true);
 
-    // bAlwaysRelevant = true;
-    bReplicates = true;
-    SetReplicatingMovement(true);
-
-    GetMesh()->bEnableUpdateRateOptimizations = false;
-
-    MovementComponent = Cast<UGASPCharacterMovementComponent>(GetCharacterMovement());
+	GetMesh()->bEnableUpdateRateOptimizations = false;
+	MovementComponent = Cast<UGASPCharacterMovementComponent>(GetCharacterMovement());
 }
 
 // Called when the game starts or when spawned
 void AGASPCharacter::BeginPlay()
 {
-    Super::BeginPlay();
+	Super::BeginPlay();
 
-    SetGait(DesiredGait, true);
-    SetRotationMode(DesiredRotationMode, true);
-    SetOverlayState(OverlayState, true);
+	if (!IsValid(MovementComponent))
+	{
+		return;
+	}
+
+	SetGait(DesiredGait, true);
+	SetRotationMode(DesiredRotationMode, true);
+	SetOverlayState(OverlayState, true);
+	SetLocomotionAction(ELocomotionAction::None, true);
+
+	if (GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		OnCharacterMovementUpdated.AddUniqueDynamic(this, &ThisClass::OnMovementUpdateSimulatedProxy);
+	}
 }
 
 // Called every frame
 void AGASPCharacter::Tick(float DeltaTime)
 {
-    Super::Tick(DeltaTime);
+	Super::Tick(DeltaTime);
 
-    // if (!IsValid(MovementComponent))
-    // return;
+	if (GetLocalRole() >= ROLE_AutonomousProxy)
+	{
+		SetReplicatedAcceleration(MovementComponent->GetCurrentAcceleration());
+	}
+
+	const bool IsMoving = !MovementComponent->Velocity.IsNearlyZero(.1f) && !ReplicatedAcceleration.IsZero();
+	SetMovementState(IsMoving ? EMovementState::Moving : EMovementState::Idle);
+
+	if (LocomotionAction == ELocomotionAction::Ragdoll)
+	{
+		RefreshRagdolling(DeltaTime);
+	}
 }
 
 void AGASPCharacter::PostRegisterAllComponents()
 {
-    Super::PostRegisterAllComponents();
+	Super::PostRegisterAllComponents();
 
-    MovementComponent = Cast<UGASPCharacterMovementComponent>(GetCharacterMovement());
+	MovementComponent = Cast<UGASPCharacterMovementComponent>(GetCharacterMovement());
 }
 
 void AGASPCharacter::OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
 {
-    Super::OnStartCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
+	Super::OnStartCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
 
-    SetStanceMode(EStanceMode::Crouch);
+	SetStanceMode(EStanceMode::Crouch);
 }
 
 void AGASPCharacter::OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
 {
-    Super::OnEndCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
+	Super::OnEndCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
 
-    SetStanceMode(EStanceMode::Stand);
+	SetStanceMode(EStanceMode::Stand);
 }
 
 void AGASPCharacter::PostInitializeComponents()
 {
-    Super::PostInitializeComponents();
-    GetMesh()->AddTickPrerequisiteActor(this);
+	Super::PostInitializeComponents();
+	GetMesh()->AddTickPrerequisiteActor(this);
 
-    MovementComponent = Cast<UGASPCharacterMovementComponent>(GetCharacterMovement());
+	MovementComponent = Cast<UGASPCharacterMovementComponent>(GetCharacterMovement());
 }
 
 void AGASPCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-    Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-    FDoRepLifetimeParams Parameters;
-    Parameters.bIsPushBased = true;
-    Parameters.Condition = COND_SkipOwner;
+	FDoRepLifetimeParams Parameters;
+	Parameters.bIsPushBased = true;
 
-    Parameters.Condition = COND_None;
-    DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Gait, Parameters);
-    DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, RotationMode, Parameters);
-    DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, MovementMode, Parameters);
-    DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, MovementState, Parameters);
-    DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, StanceMode, Parameters);
+	// Replicate to everyone except owner
+	Parameters.Condition = COND_SkipOwner;
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Gait, Parameters);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, RotationMode, Parameters);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, MovementMode, Parameters);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, MovementState, Parameters);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, StanceMode, Parameters);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, LocomotionAction, Parameters);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, ReplicatedAcceleration, Parameters);
 
-    Parameters.Condition = COND_None;
-    DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, OverlayState, Parameters);
+	DOREPLIFETIME(ThisClass, RagdollTargetLocation);
+
+	// Replicate to everyone
+	Parameters.Condition = COND_None;
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, OverlayState, Parameters);
 }
 
 void AGASPCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PrevCustomMode)
 {
-    Super::OnMovementModeChanged(PrevMovementMode, PrevCustomMode);
+	Super::OnMovementModeChanged(PrevMovementMode, PrevCustomMode);
 
-    if (!ensure(MovementComponent))
-        return;
+	if (!ensure(MovementComponent))
+	{
+		return;
+	}
 
-    if (MovementComponent->IsMovingOnGround()) {
-        SetMovementMode(ECMovementMode::OnGround);
-    } else if (MovementComponent->IsFalling()) {
-        SetMovementMode(ECMovementMode::InAir);
-    }
+	if (MovementComponent->IsMovingOnGround())
+	{
+		SetMovementMode(ECMovementMode::OnGround);
+	}
+	else if (MovementComponent->IsFalling())
+	{
+		SetMovementMode(ECMovementMode::InAir);
+	}
 }
 
 void AGASPCharacter::SetGait(const EGait NewGait, const bool bForce)
 {
-    if (!ensure(MovementComponent))
-        return;
+	if (!ensure(MovementComponent))
+	{
+		return;
+	}
 
-    if (NewGait != Gait || bForce) {
+	if (NewGait != Gait || bForce)
+	{
+		Gait = NewGait;
+		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Gait, this);
 
-        Gait = NewGait;
-        MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Gait, this);
+		MovementComponent->SetGait(NewGait);
 
-        MovementComponent->SetGait(NewGait);
+		if (GetLocalRole() == ROLE_AutonomousProxy && IsValid(GetNetConnection()))
+		{
+			Server_SetGait(NewGait);
+		}
 
-        if (GetLocalRole() == ROLE_AutonomousProxy) {
-            Server_SetGait(NewGait);
-        }
-
-        GaitChanged.Broadcast(NewGait);
-    }
+		GaitChanged.Broadcast(NewGait);
+	}
 }
 
 void AGASPCharacter::SetRotationMode(const ERotationMode NewRotationMode, const bool bForce)
 {
-    if (!ensure(MovementComponent))
-        return;
+	if (!ensure(MovementComponent))
+	{
+		return;
+	}
 
-    if (NewRotationMode != RotationMode || bForce) {
+	if (NewRotationMode != RotationMode || bForce)
+	{
+		RotationMode = NewRotationMode;
+		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, RotationMode, this);
 
-        RotationMode = NewRotationMode;
-        MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, RotationMode, this);
+		MovementComponent->SetRotationMode(NewRotationMode);
 
-        MovementComponent->SetRotationMode(NewRotationMode);
+		if (GetLocalRole() == ROLE_AutonomousProxy && IsValid(GetNetConnection()))
+		{
+			Server_SetRotationMode(NewRotationMode);
+		}
 
-        if (GetLocalRole() == ROLE_AutonomousProxy) {
-            Server_SetRotationMode(NewRotationMode);
-        }
-
-        RotationModeChanged.Broadcast(NewRotationMode);
-    }
+		RotationModeChanged.Broadcast(NewRotationMode);
+	}
 }
 
 void AGASPCharacter::SetMovementMode(const ECMovementMode NewMovementMode, const bool bForce)
 {
-    if (!ensure(MovementComponent))
-        return;
+	if (!ensure(MovementComponent))
+	{
+		return;
+	}
 
-    if (NewMovementMode != MovementMode || bForce) {
-        MovementMode = NewMovementMode;
-        MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, MovementMode, this);
-        if (GetLocalRole() == ROLE_AutonomousProxy) {
-            Server_SetMovementMode(NewMovementMode);
-        }
-    }
+	if (NewMovementMode != MovementMode || bForce)
+	{
+		MovementMode = NewMovementMode;
+		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, MovementMode, this);
+		if (GetLocalRole() == ROLE_AutonomousProxy && IsValid(GetNetConnection()))
+
+		{
+			Server_SetMovementMode(NewMovementMode);
+		}
+	}
 }
 
 void AGASPCharacter::Server_SetMovementMode_Implementation(const ECMovementMode NewMovementMode)
 {
-    MovementMode = NewMovementMode;
+	SetMovementMode(NewMovementMode);
 }
 
 void AGASPCharacter::Server_SetRotationMode_Implementation(const ERotationMode NewRotationMode)
 {
-    SetRotationMode(NewRotationMode);
+	SetRotationMode(NewRotationMode);
 }
 
 void AGASPCharacter::Server_SetGait_Implementation(const EGait NewGait)
 {
-    SetGait(NewGait);
+	SetGait(NewGait);
 }
 
 void AGASPCharacter::SetMovementState(const EMovementState NewMovementState, const bool bForce)
 {
-    if (!ensure(MovementComponent))
-        return;
+	if (!ensure(MovementComponent))
+	{
+		return;
+	}
 
-    if (NewMovementState != MovementState || bForce) {
+	if (NewMovementState != MovementState || bForce)
+	{
+		MovementState = NewMovementState;
+		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, MovementState, this);
 
-        MovementState = NewMovementState;
-        MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, MovementState, this);
-
-        if (GetLocalRole() == ROLE_AutonomousProxy) {
-            Server_SetMovementState(NewMovementState);
-        }
-        MovementStateChanged.Broadcast(NewMovementState);
-    }
+		if (GetLocalRole() == ROLE_AutonomousProxy && IsValid(GetNetConnection()))
+		{
+			Server_SetMovementState(NewMovementState);
+		}
+		MovementStateChanged.Broadcast(NewMovementState);
+	}
 }
 
 void AGASPCharacter::SetStanceMode(EStanceMode NewStanceMode, bool bForce)
 {
-    if (StanceMode != NewStanceMode || bForce) {
-        StanceMode = NewStanceMode;
-        MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, StanceMode, this);
+	if (StanceMode != NewStanceMode || bForce)
+	{
+		StanceMode = NewStanceMode;
+		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, StanceMode, this);
 
-        UE_LOG(LogTemp, Warning, TEXT("Crouch"))
+		UE_LOG(LogTemp, Warning, TEXT("Crouch"))
 
-        if (GetLocalRole() == ROLE_AutonomousProxy) {
-            Server_SetStanceMode(NewStanceMode);
-        }
-        StanceModeChanged.Broadcast(NewStanceMode);
-    }
+		if (GetLocalRole() == ROLE_AutonomousProxy && IsValid(GetNetConnection()))
+		{
+			Server_SetStanceMode(NewStanceMode);
+		}
+		StanceModeChanged.Broadcast(NewStanceMode);
+	}
 }
 
 void AGASPCharacter::Server_SetStanceMode_Implementation(const EStanceMode NewStanceMode)
 {
-    SetStanceMode(NewStanceMode);
+	SetStanceMode(NewStanceMode);
 }
 
 void AGASPCharacter::Server_SetMovementState_Implementation(const EMovementState NewMovementState)
 {
-    MovementState = NewMovementState;
+	SetMovementState(NewMovementState);
 }
 
 void AGASPCharacter::MoveAction(const FVector2D& Value)
 {
-    const FRotator Rotation = GetControlRotation();
-    const FRotator YawRotation = FRotator(0.f, Rotation.Yaw, 0.f);
+	if (!IsLocallyControlled())
+	{
+		return;
+	}
 
-    const FVector ForwardDirectionDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-    const FVector RightDirectionDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+	const FRotator Rotation = GetControlRotation();
+	const FRotator YawRotation = FRotator(0.f, Rotation.Yaw, 0.f);
+	const FVector ForwardDirectionDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+	const FVector RightDirectionDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
-    AddMovementInput(ForwardDirectionDirection, Value.X);
-    AddMovementInput(RightDirectionDirection, Value.Y);
+	AddMovementInput(ForwardDirectionDirection, Value.X);
+	AddMovementInput(RightDirectionDirection, Value.Y);
 }
 
 void AGASPCharacter::LookAction(const FVector2D& Value)
 {
-    AddControllerYawInput(Value.Y);
-    AddControllerPitchInput(-1 * Value.X);
-}
-
-void AGASPCharacter::PlayMontage_Implementation(UAnimMontage* MontageToPlay, float InPlayRate,
-    EMontagePlayReturnType ReturnValueType, float InTimeToStartMontageAt,
-    bool bStopAllMontages)
-{
-    if (UAnimInstance* AnimInst = GetMesh()->GetAnimInstance()) {
-        AnimInst->Montage_Play(MontageToPlay, InPlayRate, ReturnValueType, InTimeToStartMontageAt, bStopAllMontages);
-    }
-
-    Server_PlayMontage(MontageToPlay, InPlayRate, ReturnValueType, InTimeToStartMontageAt, bStopAllMontages);
-}
-
-void AGASPCharacter::Server_PlayMontage_Implementation(UAnimMontage* MontageToPlay, float InPlayRate,
-    const EMontagePlayReturnType ReturnValueType,
-    const float InTimeToStartMontageAt, const bool bStopAllMontages)
-{
-    if (UAnimInstance* AnimInst = GetMesh()->GetAnimInstance()) {
-        AnimInst->Montage_Play(MontageToPlay, InPlayRate, ReturnValueType, InTimeToStartMontageAt, bStopAllMontages);
-    }
-
-    ForceNetUpdate();
-    Multicast_PlayMontage(MontageToPlay, InPlayRate, ReturnValueType, InTimeToStartMontageAt, bStopAllMontages);
-}
-
-void AGASPCharacter::Multicast_PlayMontage_Implementation(UAnimMontage* MontageToPlay, float InPlayRate,
-    EMontagePlayReturnType ReturnValueType,
-    float InTimeToStartMontageAt, bool bStopAllMontages)
-{
-    if (UAnimInstance* AnimInst = GetMesh()->GetAnimInstance()) {
-        AnimInst->Montage_Play(MontageToPlay, InPlayRate, ReturnValueType, InTimeToStartMontageAt, bStopAllMontages);
-    }
+	AddControllerYawInput(Value.Y);
+	AddControllerPitchInput(-1 * Value.X);
 }
 
 bool AGASPCharacter::CanSprint()
 {
-    if (RotationMode == ERotationMode::OrientToMovement)
-        return true;
+	if (RotationMode == ERotationMode::OrientToMovement)
+	{
+		return true;
+	}
+	if (RotationMode == ERotationMode::Aim)
+	{
+		return false;
+	}
 
-    const FVector Acceleration { IsLocallyControlled() ? GetPendingMovementInputVector()
-                                                       : MovementComponent->GetCurrentAcceleration() };
+	const FVector Acceleration{
+		IsLocallyControlled()
+			? GetPendingMovementInputVector()
+			: MovementComponent->GetCurrentAcceleration()
+	};
 
-    return UAnimationUtils::CalculateDirection(Acceleration, GetActorRotation()) < 50.f;
-    //const FRotator Rotation { GetActorRotation() - FRotationMatrix::MakeFromX(Acceleration).Rotator() };
-    //return FMath::Abs(Rotation.Yaw) < 50.f;
+	return FGASPMath::CalculateDirection(Acceleration, GetActorRotation()) < 50.f;
 }
 
 UGASPCharacterMovementComponent* AGASPCharacter::GetBCharacterMovement() const
 {
-    return StaticCast<UGASPCharacterMovementComponent*>(GetCharacterMovement());
+	return StaticCast<UGASPCharacterMovementComponent*>(GetCharacterMovement());
 }
 
 void AGASPCharacter::SetOverlayState(const EOverlayState NewOverlayState, const bool bForce)
 {
-    if (NewOverlayState != OverlayState || bForce) {
-        OverlayState = NewOverlayState;
-        MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, OverlayState, this);
+	if (NewOverlayState != OverlayState || bForce)
+	{
+		OverlayState = NewOverlayState;
+		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, OverlayState, this);
 
-        if (GetLocalRole() == ROLE_AutonomousProxy) {
-            Server_SetOverlayState(NewOverlayState);
-        }
-        OverlayStateChanged.Broadcast(NewOverlayState);
-    }
+		if (GetLocalRole() == ROLE_AutonomousProxy)
+		{
+			Server_SetOverlayState(NewOverlayState);
+		}
+		OverlayStateChanged.Broadcast(NewOverlayState);
+	}
+}
+
+void AGASPCharacter::SetLocomotionAction(ELocomotionAction NewLocomotionAction, bool bForce)
+{
+	if (NewLocomotionAction != LocomotionAction || bForce)
+	{
+		LocomotionAction = NewLocomotionAction;
+		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, LocomotionAction, this);
+
+		if (GetLocalRole() == ROLE_AutonomousProxy)
+		{
+			Server_SetLocomotionAction(NewLocomotionAction);
+		}
+		LocomotionActionChanged.Broadcast(NewLocomotionAction);
+	}
+}
+
+void AGASPCharacter::Server_SetLocomotionAction_Implementation(ELocomotionAction NewLocomotionAction)
+{
+	SetLocomotionAction(NewLocomotionAction);
 }
 
 void AGASPCharacter::Server_SetOverlayState_Implementation(const EOverlayState NewOverlayState)
 {
-    OverlayState = NewOverlayState;
+	SetOverlayState(NewOverlayState);
+}
+
+void AGASPCharacter::SetReplicatedAcceleration(FVector NewAcceleration)
+{
+	COMPARE_ASSIGN_AND_MARK_PROPERTY_DIRTY(ThisClass, ReplicatedAcceleration, NewAcceleration, this);
+}
+
+void AGASPCharacter::OnWalkingOffLedge_Implementation(const FVector& PreviousFloorImpactNormal,
+                                                      const FVector& PreviousFloorContactNormal,
+                                                      const FVector& PreviousLocation, float TimeDelta)
+{
+	Super::OnWalkingOffLedge_Implementation(PreviousFloorImpactNormal, PreviousFloorContactNormal, PreviousLocation,
+	                                        TimeDelta);
+	UnCrouch();
+}
+
+void AGASPCharacter::PlayAudioEvent(const FGameplayTag GameplayTag, const float VolumeMultiplier,
+                                    const float PitchMultiplier)
+{
+	UFoleyAudioBankPrimaryDataAsset* AudioBank = GetFoleyAudioBank();
+	if (IsValid(AudioBank))
+	{
+		USoundBase* Sound{AudioBank->GetSoundFromEvent(GameplayTag)};
+		UGameplayStatics::PlaySoundAtLocation(GetWorld(), Sound, GetMesh()->GetComponentLocation(), VolumeMultiplier,
+		                                      PitchMultiplier);
+	}
+}
+
+void AGASPCharacter::OnJumped_Implementation()
+{
+	Super::OnJumped_Implementation();
+
+	float VolumeMultiplier = FMath::GetMappedRangeValueClamped<float, float>(
+		{-500.f, -900.f}, {.0f, 1.5f}, GetVelocity().Size2D());
+	PlayAudioEvent(FoleyJumpTag, VolumeMultiplier);
+}
+
+UFoleyAudioBankPrimaryDataAsset* AGASPCharacter::GetFoleyAudioBank()
+{
+	return FoleyAudioBank.IsValid() ? FoleyAudioBank.LoadSynchronous() : nullptr;
+}
+
+bool AGASPCharacter::CanPlayFootstepSounds()
+{
+	return MovementMode == ECMovementMode::OnGround || bDoingTraversal;
+}
+
+void AGASPCharacter::OnMovementUpdateSimulatedProxy_Implementation(float DeltaSeconds, FVector OldLocation,
+                                                                   FVector OldVelocity)
+{
+	if (MovementMode != PreviousMovementMode)
+	{
+		float VolumeMultiplier;
+		switch (MovementMode)
+		{
+		case ECMovementMode::OnGround:
+			VolumeMultiplier = FMath::GetMappedRangeValueClamped<float, float>(
+				{-500.f, -900.f}, {.0f, 1.5f}, OldVelocity.Z);
+			PlayAudioEvent(FoleyJumpTag, VolumeMultiplier);
+			break;
+		default:
+			VolumeMultiplier = FMath::GetMappedRangeValueClamped<float, float>(
+				{.0f, 500.f}, {.0f, 1.f}, OldVelocity.Size2D());
+			PlayAudioEvent(FoleyLandTag, VolumeMultiplier);
+			break;
+		}
+	}
+	PreviousMovementMode = MovementMode;
 }

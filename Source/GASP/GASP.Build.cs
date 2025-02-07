@@ -4,15 +4,23 @@ using UnrealBuildTool;
 
 public class GASP : ModuleRules
 {
-    public GASP(ReadOnlyTargetRules Target) : base(Target)
-    {
-        PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-        IncludeOrderVersion = EngineIncludeOrderVersion.Latest;
+	public GASP(ReadOnlyTargetRules Target) : base(Target)
+	{
+		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+		IncludeOrderVersion = EngineIncludeOrderVersion.Latest;
 
-        bEnableNonInlinedGenCppWarnings = true;
+		bEnableNonInlinedGenCppWarnings = true;
 
-        PublicDependencyModuleNames.AddRange(new string[] { "CoreUObject", "Core", "Engine", "UMG", "NetCore", "AnimationModifiers", "AnimationBlueprintLibrary" });
+		PublicDependencyModuleNames.AddRange(new string[]
+		{
+			"CoreUObject", "Core", "Engine", "UMG", "NetCore",
+			"GameplayTags", "GameplayDebugger"
+		});
 
-        PrivateDependencyModuleNames.AddRange(new string[] { "MotionTrajectory", "PoseSearch", "Chooser", "AnimationWarpingRuntime", "BlendStack" });
-    }
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			"MotionTrajectory", "PoseSearch", "Chooser",
+			"AnimationWarpingRuntime", "BlendStack", "PhysicsCore", "AnimationBlueprintLibrary"
+		});
+	}
 }

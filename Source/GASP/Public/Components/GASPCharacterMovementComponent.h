@@ -84,7 +84,7 @@ public:
 	virtual void PhysicsRotation(float DeltaTime) override;
 	virtual void PhysNavWalking(float deltaTime, int32 Iterations) override;
 	virtual void PhysWalking(float deltaTime, int32 Iterations) override;
-
+	virtual void MoveSmooth(const FVector& InVelocity, const float DeltaSeconds, FStepDownResult* OutStepDownResult = 0) override;
 	virtual float GetMaxAcceleration() const override;
 	virtual float GetMaxBrakingDeceleration() const override;
 	virtual bool HasMovementInputVector() const;

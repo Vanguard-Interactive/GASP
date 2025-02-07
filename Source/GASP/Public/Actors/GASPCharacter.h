@@ -3,163 +3,299 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "GameFramework/Character.h"
+#include "Interfaces/FoleyAudioBankInterface.h"
 #include "Types/EnumTypes.h"
+#include "Types/StructTypes.h"
 #include "GASPCharacter.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnOverlayStateChanged, EOverlayState, NewOverlayState);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRotationModeChanged, ERotationMode, NewRotationMode);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGaitChanged, EGait, NewGait);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMovementStateChanged, EMovementState, NewMovementState);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStanceModeChanged, EStanceMode, NetStanceMode);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLocomotionActionChanged, ELocomotionAction, NewLocomotionAction);
 
 class UGASPCharacterMovementComponent;
 
 UCLASS(Abstract)
-class GASP_API AGASPCharacter : public ACharacter {
-    GENERATED_BODY()
+class GASP_API AGASPCharacter : public ACharacter, public IFoleyAudioBankInterface
+{
+	GENERATED_BODY()
 
 protected:
-    // Called when the game starts or when spawned
-    virtual void BeginPlay() override;
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
 
-    virtual void PostInitializeComponents() override;
-    virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-    virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PrevCustomMode) override;
+	virtual void PostInitializeComponents() override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PrevCustomMode) override;
+	UPROPERTY()
+	TObjectPtr<UGASPCharacterMovementComponent> MovementComponent{};
 
-    UPROPERTY()
-    TObjectPtr<UGASPCharacterMovementComponent> MovementComponent {};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	ERotationMode DesiredRotationMode{ERotationMode::Strafe};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	EGait DesiredGait{EGait::Run};
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly)
-    ERotationMode DesiredRotationMode { ERotationMode::Strafe };
-    UPROPERTY(EditAnywhere, BlueprintReadOnly)
-    EGait DesiredGait { EGait::Run };
+	UPROPERTY(BlueprintReadOnly, Replicated)
+	EGait Gait{EGait::Run};
+	UPROPERTY(BlueprintReadOnly, Replicated)
+	ERotationMode RotationMode{ERotationMode::Strafe};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Transient)
+	EMovementState MovementState{EMovementState::Idle};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Transient)
+	ECMovementMode MovementMode{ECMovementMode::OnGround};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Transient)
+	EStanceMode StanceMode{EStanceMode::Stand};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Transient)
+	EOverlayState OverlayState{EOverlayState::Default};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Transient)
+	ELocomotionAction LocomotionAction{ELocomotionAction::None};
 
-    UPROPERTY(BlueprintReadOnly, Replicated)
-    EGait Gait { EGait::Run };
-    UPROPERTY(BlueprintReadOnly, Replicated)
-    ERotationMode RotationMode { ERotationMode::Strafe };
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
-    EMovementState MovementState { EMovementState::Idle };
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
-    ECMovementMode MovementMode { ECMovementMode::OnGround };
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
-    EStanceMode StanceMode { EStanceMode::Stand };
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
-    EOverlayState OverlayState { EOverlayState::Default };
+	UPROPERTY(BlueprintReadOnly)
+	EGait PreviousGait{EGait::Run};
+	UPROPERTY(BlueprintReadOnly, Replicated)
+	ERotationMode PreviousRotationMode{ERotationMode::Strafe};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Transient)
+	EMovementState PreviousMovementState{EMovementState::Idle};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Transient)
+	ECMovementMode PreviousMovementMode{ECMovementMode::OnGround};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Transient)
+	EStanceMode PreviousStanceMode{EStanceMode::Stand};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Transient)
+	EOverlayState PreviousOverlayState{EOverlayState::Default};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Transient)
+	ELocomotionAction PreviousLocomotionAction{ELocomotionAction::None};
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Transient)
+	FVector_NetQuantize ReplicatedAcceleration{ForceInit};
+	UPROPERTY(BlueprintReadOnly, Replicated)
+	FVector_NetQuantize RagdollTargetLocation{ForceInit};
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Character", Transient)
+	FRagdollingState RagdollingState;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Transient)
+	TSoftObjectPtr<UFoleyAudioBankPrimaryDataAsset> FoleyAudioBank;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TObjectPtr<UAnimMontage> GetUpMontageFront{};
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TObjectPtr<UAnimMontage> GetUpMontageBack{};
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	bool bLimitInitialRagdollSpeed;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	FGameplayTag FoleyJumpTag;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	FGameplayTag FoleyLandTag;
+
+	void SetReplicatedAcceleration(FVector NewAcceleration);
+
+	UFUNCTION(BlueprintPure)
+	UAnimMontage* SelectGetUpMontage(bool bRagdollFacingUpward);
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	bool bDoingTraversal{false};
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	float IgnoreCorrectionsDelay{.2f};
+
+	virtual void OnWalkingOffLedge_Implementation(const FVector& PreviousFloorImpactNormal,
+	                                              const FVector& PreviousFloorContactNormal,
+	                                              const FVector& PreviousLocation, float TimeDelta) override;
+
+	UFUNCTION(BlueprintNativeEvent)
+	void OnMovementUpdateSimulatedProxy(float DeltaSeconds, FVector OldLocation, FVector OldVelocity);
+
+	UFUNCTION(BlueprintCallable)
+	void PlayAudioEvent(const FGameplayTag GameplayTag, const float VolumeMultiplier = 1.f,
+	                    const float PitchMultiplier = 1.f);
+
+	virtual void OnJumped_Implementation() override;
 
 public:
-    UPROPERTY(BlueprintAssignable)
-    FOnOverlayStateChanged OverlayStateChanged;
+	virtual UFoleyAudioBankPrimaryDataAsset* GetFoleyAudioBank() override;
+	virtual bool CanPlayFootstepSounds() override;
 
-    UPROPERTY(BlueprintAssignable)
-    FOnGaitChanged GaitChanged;
-    UPROPERTY(BlueprintAssignable)
-    FOnRotationModeChanged RotationModeChanged;
-    UPROPERTY(BlueprintAssignable)
-    FOnMovementStateChanged MovementStateChanged;
-    UPROPERTY(BlueprintAssignable)
-    FOnStanceModeChanged StanceModeChanged;
+	UPROPERTY(BlueprintAssignable)
+	FOnOverlayStateChanged OverlayStateChanged;
 
-    // Sets default values for this character's properties
-    explicit AGASPCharacter(const FObjectInitializer& ObjectInitializer);
-    AGASPCharacter() = default;
+	UPROPERTY(BlueprintAssignable)
+	FOnGaitChanged GaitChanged;
+	UPROPERTY(BlueprintAssignable)
+	FOnRotationModeChanged RotationModeChanged;
+	UPROPERTY(BlueprintAssignable)
+	FOnMovementStateChanged MovementStateChanged;
+	UPROPERTY(BlueprintAssignable)
+	FOnStanceModeChanged StanceModeChanged;
+	UPROPERTY(BlueprintAssignable)
+	FOnLocomotionActionChanged LocomotionActionChanged;
 
-    // Called every frame
-    virtual void Tick(float DeltaTime) override;
+	UFUNCTION()
+	void OnRep_Acceleration();
 
-    virtual void PostRegisterAllComponents() override;
+	// Sets default values for this character's properties
+	explicit AGASPCharacter(const FObjectInitializer& ObjectInitializer);
+	AGASPCharacter() = default;
 
-    virtual void OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
-    virtual void OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
+	// Called every frame
+	virtual void Tick(float DeltaTime) override;
 
-    /****************************
-     *		Input actions		*
-     ****************************/
-    UFUNCTION(BlueprintCallable)
-    void MoveAction(const FVector2D& Value);
-    UFUNCTION(BlueprintCallable)
-    void LookAction(const FVector2D& Value);
+	virtual void PostRegisterAllComponents() override;
 
-    /****************************
-     *		Movement States		*
-     ****************************/
-    UFUNCTION(BlueprintSetter)
-    void SetGait(EGait NewGait, bool bForce = false);
-    UFUNCTION(Server, Reliable)
-    void Server_SetGait(EGait NewGait);
+	virtual void OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
+	virtual void OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
 
-    UFUNCTION(BlueprintSetter)
-    void SetRotationMode(ERotationMode NewRotationMode, bool bForce = false);
-    UFUNCTION(Server, Reliable)
-    void Server_SetRotationMode(ERotationMode NewRotationMode);
+	/****************************
+	 *		Input actions		*
+	 ****************************/
+	UFUNCTION(BlueprintCallable)
+	void MoveAction(const FVector2D& Value);
+	UFUNCTION(BlueprintCallable)
+	void LookAction(const FVector2D& Value);
 
-    UFUNCTION(BlueprintSetter)
-    void SetMovementMode(ECMovementMode NewMovementMode, bool bForce = false);
-    UFUNCTION(Server, Reliable)
-    void Server_SetMovementMode(ECMovementMode NewMovementMode);
+	/****************************
+	 *		Movement States		*
+	 ****************************/
+	UFUNCTION(BlueprintSetter)
+	void SetGait(EGait NewGait, bool bForce = false);
+	UFUNCTION(Server, Reliable)
+	void Server_SetGait(EGait NewGait);
 
-    UFUNCTION(BlueprintSetter)
-    void SetMovementState(EMovementState NewMovementState, bool bForce = false);
-    UFUNCTION(Server, Reliable)
-    void Server_SetMovementState(EMovementState NewMovementState);
+	UFUNCTION(BlueprintSetter)
+	void SetRotationMode(ERotationMode NewRotationMode, bool bForce = false);
+	UFUNCTION(Server, Reliable)
+	void Server_SetRotationMode(ERotationMode NewRotationMode);
 
-    UFUNCTION(BlueprintCallable)
-    void SetStanceMode(EStanceMode NewStanceMode, bool bForce = false);
-    UFUNCTION(Server, Reliable)
-    void Server_SetStanceMode(EStanceMode NewStanceMode);
+	UFUNCTION(BlueprintSetter)
+	void SetMovementMode(ECMovementMode NewMovementMode, bool bForce = false);
+	UFUNCTION(Server, Reliable)
+	void Server_SetMovementMode(ECMovementMode NewMovementMode);
 
-    UFUNCTION(BlueprintSetter)
-    void SetOverlayState(EOverlayState NewOverlayState, bool bForce = false);
-    UFUNCTION(Server, Reliable)
-    void Server_SetOverlayState(EOverlayState NewOverlayState);
+	UFUNCTION(BlueprintSetter)
+	void SetMovementState(EMovementState NewMovementState, bool bForce = false);
+	UFUNCTION(Server, Reliable)
+	void Server_SetMovementState(EMovementState NewMovementState);
 
-    UFUNCTION(BlueprintNativeEvent)
-    void PlayMontage(UAnimMontage* MontageToPlay, float InPlayRate = 1.f,
-        EMontagePlayReturnType ReturnValueType = EMontagePlayReturnType::MontageLength,
-        float InTimeToStartMontageAt = 0.f, bool bStopAllMontages = true);
-    UFUNCTION(Server, Reliable)
-    void Server_PlayMontage(UAnimMontage* MontageToPlay, float InPlayRate = 1.f,
-        EMontagePlayReturnType ReturnValueType = EMontagePlayReturnType::MontageLength,
-        float InTimeToStartMontageAt = 0.f, bool bStopAllMontages = true);
-    UFUNCTION(NetMulticast, Reliable)
-    void Multicast_PlayMontage(UAnimMontage* MontageToPlay, float InPlayRate = 1.f,
-        EMontagePlayReturnType ReturnValueType = EMontagePlayReturnType::MontageLength,
-        float InTimeToStartMontageAt = 0.f, bool bStopAllMontages = true);
+	UFUNCTION(BlueprintCallable)
+	void SetStanceMode(EStanceMode NewStanceMode, bool bForce = false);
+	UFUNCTION(Server, Reliable)
+	void Server_SetStanceMode(EStanceMode NewStanceMode);
 
-    UFUNCTION(BlueprintPure)
-    virtual bool CanSprint();
-    UGASPCharacterMovementComponent* GetBCharacterMovement() const;
+	UFUNCTION(BlueprintSetter)
+	void SetOverlayState(EOverlayState NewOverlayState, bool bForce = false);
+	UFUNCTION(Server, Reliable)
+	void Server_SetOverlayState(EOverlayState NewOverlayState);
 
-    UFUNCTION(BlueprintGetter)
-    FORCEINLINE EOverlayState GetOverlayState() const
-    {
-        return OverlayState;
-    }
-    UFUNCTION(BlueprintGetter)
-    FORCEINLINE EGait GetGait() const
-    {
-        return Gait;
-    }
-    UFUNCTION(BlueprintGetter)
-    FORCEINLINE ERotationMode GetRotationMode() const
-    {
-        return RotationMode;
-    }
-    UFUNCTION(BlueprintGetter)
-    FORCEINLINE ECMovementMode GetMovementMode() const
-    {
-        return MovementMode;
-    }
-    UFUNCTION(BlueprintGetter)
-    FORCEINLINE EMovementState GetMovementState() const
-    {
-        return MovementState;
-    }
+	UFUNCTION(BlueprintSetter)
+	void SetLocomotionAction(ELocomotionAction NewMovementAction, bool bForce = false);
+	UFUNCTION(Server, Reliable)
+	void Server_SetLocomotionAction(ELocomotionAction NewMovementAction);
 
-    UFUNCTION(BlueprintGetter)
-    FORCEINLINE EStanceMode GetStanceMode() const
-    {
-        return StanceMode;
-    }
+	UFUNCTION(BlueprintPure)
+	virtual bool CanSprint();
+	UGASPCharacterMovementComponent* GetBCharacterMovement() const;
+
+	UFUNCTION(BlueprintGetter)
+	FORCEINLINE FVector GetReplicatedAcceleration() const
+	{
+		return ReplicatedAcceleration;
+	}
+
+	UFUNCTION(BlueprintGetter)
+	FORCEINLINE EOverlayState GetOverlayState() const
+	{
+		return OverlayState;
+	}
+
+	UFUNCTION(BlueprintGetter)
+	FORCEINLINE ELocomotionAction GetLocomotionAction() const
+	{
+		return LocomotionAction;
+	}
+
+	UFUNCTION(BlueprintGetter)
+	FORCEINLINE EGait GetGait() const
+	{
+		return Gait;
+	}
+
+	UFUNCTION(BlueprintGetter)
+	FORCEINLINE ERotationMode GetRotationMode() const
+	{
+		return RotationMode;
+	}
+
+	UFUNCTION(BlueprintGetter)
+	FORCEINLINE ECMovementMode GetMovementMode() const
+	{
+		return MovementMode;
+	}
+
+	UFUNCTION(BlueprintGetter)
+	FORCEINLINE EMovementState GetMovementState() const
+	{
+		return MovementState;
+	}
+
+	UFUNCTION(BlueprintGetter)
+	FORCEINLINE EStanceMode GetStanceMode() const
+	{
+		return StanceMode;
+	}
+
+	bool IsRagdollingAllowedToStart() const;
+
+	// Ragdolling
+
+	const FRagdollingState& GetRagdollingState() const
+	{
+		return RagdollingState;
+	}
+
+public:
+	UFUNCTION(BlueprintCallable, Category = "GASP|Character")
+	void StartRagdolling();
+
+private:
+	UFUNCTION(Server, Reliable)
+	void ServerStartRagdolling();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastStartRagdolling();
+
+	void StartRagdollingImplementation();
+
+public:
+	bool IsRagdollingAllowedToStop() const;
+
+	UFUNCTION(BlueprintCallable, Category = "GASP|Character", Meta = (ReturnDisplayName = "Success"))
+	bool StopRagdolling();
+
+private:
+	UFUNCTION(Server, Reliable)
+	void ServerStopRagdolling();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastStopRagdolling();
+
+	void StopRagdollingImplementation();
+
+private:
+	void SetRagdollTargetLocation(const FVector& NewTargetLocation);
+
+	UFUNCTION(Server, Unreliable)
+	void ServerSetRagdollTargetLocation(const FVector_NetQuantize& NewTargetLocation);
+
+	void RefreshRagdolling(float DeltaTime);
+
+	FVector RagdollTraceGround(bool& bGrounded) const;
+
+	void ConstraintRagdollSpeed() const;
 };
