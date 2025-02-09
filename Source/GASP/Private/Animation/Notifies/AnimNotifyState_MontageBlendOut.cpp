@@ -22,7 +22,7 @@ void UAnimNotifyState_MontageBlendOut::NotifyTick(USkeletalMeshComponent* MeshCo
 		return;
 	}
 
-	AGASPCharacter* Character = StaticCast<AGASPCharacter*>(MeshComp->GetOwner());
+	AGASPCharacter* Character = static_cast<AGASPCharacter*>(MeshComp->GetOwner());
 	if (!IsValid(Character))
 	{
 		return;
@@ -34,7 +34,7 @@ void UAnimNotifyState_MontageBlendOut::NotifyTick(USkeletalMeshComponent* MeshCo
 		return;
 	}
 
-	UAnimMontage* AnimMontage = StaticCast<UAnimMontage*>(Animation);
+	UAnimMontage* AnimMontage = static_cast<UAnimMontage*>(Animation);
 
 	bool ShouldBlendOut = [&]()
 	{

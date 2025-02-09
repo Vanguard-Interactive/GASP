@@ -30,7 +30,7 @@ protected:
 	float PitchMultiplier{1.f};
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AnimNotify")
-	UFoleyAudioBankPrimaryDataAsset* DefaultBank{};
+	TObjectPtr<UFoleyAudioBankPrimaryDataAsset> DefaultBank{};
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AnimNotify|Debug")
 	FLinearColor VisLogDebugColor{FLinearColor::Black};

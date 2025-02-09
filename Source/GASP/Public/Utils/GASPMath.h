@@ -2,7 +2,7 @@
 
 DECLARE_STATS_GROUP(TEXT("GASP"), STATGROUP_GASP, STATCAT_Advanced)
 
-struct FGASPMath
+struct GASP_API FGASPMath
 {
 	FGASPMath() = default;
 

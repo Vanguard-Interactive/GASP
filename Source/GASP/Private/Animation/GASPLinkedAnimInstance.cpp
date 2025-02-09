@@ -93,3 +93,10 @@ FCharacterInfo UGASPLinkedAnimInstance::GetCharacterInfo() const
 	}
 	return FCharacterInfo();
 }
+
+float UGASPLinkedAnimInstance::GetAimSweep() const
+{
+	return FMath::GetMappedRangeValueClamped<float, float>({-90.f, 90.f},
+	                                                       {1.f, 0.f},
+	                                                       GetParent()->GetAOValue().Y);
+}

@@ -10,13 +10,6 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GASPCharacter)
 
-void AGASPCharacter::OnRep_Acceleration()
-{
-	// ReplicatedCurrentAcceleration = MovementComponent->GetCurrentAcceleration();
-	const bool IsMoving = !MovementComponent->Velocity.IsNearlyZero(0.1f) && !ReplicatedAcceleration.IsZero();
-	SetMovementState(IsMoving ? EMovementState::Moving : EMovementState::Idle);
-}
-
 // Sets default values
 AGASPCharacter::AGASPCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UGASPCharacterMovementComponent>(CharacterMovementComponentName))
@@ -31,6 +24,13 @@ AGASPCharacter::AGASPCharacter(const FObjectInitializer& ObjectInitializer)
 
 	GetMesh()->bEnableUpdateRateOptimizations = false;
 	MovementComponent = Cast<UGASPCharacterMovementComponent>(GetCharacterMovement());
+}
+
+void AGASPCharacter::OnSoundsPreloaded()
+{
+#if WITH_EDITOR
+	UE_LOG(LogTemp, Display, TEXT("Sound asset preloaded"))
+#endif
 }
 
 // Called when the game starts or when spawned
@@ -54,9 +54,23 @@ void AGASPCharacter::BeginPlay()
 	}
 }
 
+void AGASPCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+
+	if (FoleyAudioBank)
+	{
+		FoleyAudioBank->OnSoundsPreloaded.RemoveDynamic(this, &ThisClass::OnSoundsPreloaded);
+	}
+}
+
 // Called every frame
 void AGASPCharacter::Tick(float DeltaTime)
 {
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("AGASPCharacterTick"),
+	                            STAT_AGASPCharacter_Tick, STATGROUP_GASP)
+	TRACE_CPUPROFILER_EVENT_SCOPE(__FUNCTION__);
+
 	Super::Tick(DeltaTime);
 
 	if (GetLocalRole() >= ROLE_AutonomousProxy)
@@ -316,7 +330,7 @@ bool AGASPCharacter::CanSprint()
 
 UGASPCharacterMovementComponent* AGASPCharacter::GetBCharacterMovement() const
 {
-	return StaticCast<UGASPCharacterMovementComponent*>(GetCharacterMovement());
+	return static_cast<UGASPCharacterMovementComponent*>(GetCharacterMovement());
 }
 
 void AGASPCharacter::SetOverlayState(const EOverlayState NewOverlayState, const bool bForce)
@@ -389,14 +403,14 @@ void AGASPCharacter::OnJumped_Implementation()
 {
 	Super::OnJumped_Implementation();
 
-	float VolumeMultiplier = FMath::GetMappedRangeValueClamped<float, float>(
-		{-500.f, -900.f}, {.0f, 1.5f}, GetVelocity().Size2D());
+	const float VolumeMultiplier = FMath::GetMappedRangeValueClamped<float, float>(
+		{-500.f, -900.f}, {.5f, 1.5f}, GetVelocity().Size2D());
 	PlayAudioEvent(FoleyJumpTag, VolumeMultiplier);
 }
 
 UFoleyAudioBankPrimaryDataAsset* AGASPCharacter::GetFoleyAudioBank()
 {
-	return FoleyAudioBank.IsValid() ? FoleyAudioBank.LoadSynchronous() : nullptr;
+	return FoleyAudioBank;
 }
 
 bool AGASPCharacter::CanPlayFootstepSounds()
@@ -414,12 +428,12 @@ void AGASPCharacter::OnMovementUpdateSimulatedProxy_Implementation(float DeltaSe
 		{
 		case ECMovementMode::OnGround:
 			VolumeMultiplier = FMath::GetMappedRangeValueClamped<float, float>(
-				{-500.f, -900.f}, {.0f, 1.5f}, OldVelocity.Z);
+				{-500.f, -900.f}, {.5f, 1.5f}, OldVelocity.Z);
 			PlayAudioEvent(FoleyJumpTag, VolumeMultiplier);
 			break;
 		default:
 			VolumeMultiplier = FMath::GetMappedRangeValueClamped<float, float>(
-				{.0f, 500.f}, {.0f, 1.f}, OldVelocity.Size2D());
+				{.0f, 500.f}, {.5f, 1.f}, OldVelocity.Size2D());
 			PlayAudioEvent(FoleyLandTag, VolumeMultiplier);
 			break;
 		}

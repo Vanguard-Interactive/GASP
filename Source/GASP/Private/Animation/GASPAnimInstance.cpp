@@ -40,7 +40,7 @@ void UGASPAnimInstance::OnOverlayStateChanged(const EOverlayState NewOverlayStat
 	}
 
 	const UOverlayLayeringDataAsset* DataAsset{
-		StaticCast<UOverlayLayeringDataAsset*>(
+		static_cast<UOverlayLayeringDataAsset*>(
 			UChooserFunctionLibrary::EvaluateChooser(this, OverlayTable, UOverlayLayeringDataAsset::StaticClass()))
 	};
 	if (!IsValid(DataAsset))
@@ -327,7 +327,7 @@ float UGASPAnimInstance::GetMatchingNotifyRecencyTimeOut() const
 {
 	static constexpr float RecencyTimeOuts[]{.2f, .2f, .16f};
 
-	return Gait >= EGait::Walk && Gait <= EGait::Sprint ? RecencyTimeOuts[StaticCast<int32>(EGait(Gait))] : .2f;
+	return Gait >= EGait::Walk && Gait <= EGait::Sprint ? RecencyTimeOuts[static_cast<int32>(EGait(Gait))] : .2f;
 }
 
 FMovementDirectionThreshold UGASPAnimInstance::GetMovementDirectionThresholds() const
@@ -553,7 +553,7 @@ void UGASPAnimInstance::RefreshMotionMatchingMovement(const FAnimUpdateContext& 
 	};
 	TArray<UPoseSearchDatabase*> Databases{};
 
-	Algo::Transform(Objects, Databases, [](UObject* Object) { return StaticCast<UPoseSearchDatabase*>(Object); });
+	Algo::Transform(Objects, Databases, [](UObject* Object) { return static_cast<UPoseSearchDatabase*>(Object); });
 	if (Databases.IsEmpty())
 	{
 		return;
@@ -701,7 +701,8 @@ FVector2D UGASPAnimInstance::GetAOValue() const
 
 void UGASPAnimInstance::RefreshOverlaySettings(float DeltaTime)
 {
-	SpineRotation.Yaw = FMath::ClampAngle(GetAOValue().X, -90.f, 90.f) / 6.f;
+	const float ClampedYawAxis = FMath::ClampAngle(GetAOValue().X, -90.f, 90.f) / 6.f;
+	SpineRotation.Yaw = FMath::FInterpTo(SpineRotation.Yaw, ClampedYawAxis, DeltaTime, 60.f);
 }
 
 void UGASPAnimInstance::RefreshLayering()
@@ -709,6 +710,7 @@ void UGASPAnimInstance::RefreshLayering()
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UGASPAnimInstance::RefreshLayering"),
 	                            STAT_UGASPAnimInstance_RefreshLayering, STATGROUP_GASP)
 	TRACE_CPUPROFILER_EVENT_SCOPE(__FUNCTION__);
+
 	LayeringState.SpineAdditiveBlendAmount = GetCurveValue(LayeringCurveNames.LayeringSpineAdditiveName);
 	LayeringState.HeadAdditiveBlendAmount = GetCurveValue(LayeringCurveNames.LayeringHeadAdditiveName);
 	LayeringState.ArmLeftAdditiveBlendAmount = GetCurveValue(LayeringCurveNames.LayeringArmLeftAdditiveName);
@@ -777,7 +779,7 @@ void UGASPAnimInstance::SetBlendStackAnimFromChooser(const FAnimNodeReference& N
 
 		SearchCost = PoseSearchResult.SearchCost;
 
-		UAnimationAsset* AnimationAsset = StaticCast<UAnimationAsset*>(PoseSearchResult.SelectedAnimation);
+		UAnimationAsset* AnimationAsset = static_cast<UAnimationAsset*>(PoseSearchResult.SelectedAnimation);
 
 		const bool NoValidAnim = ChooserOutputs.MMCostLimit > 0.f
 			                         ? PoseSearchResult.SearchCost <= ChooserOutputs.MMCostLimit
@@ -809,12 +811,6 @@ void UGASPAnimInstance::SetBlendStackAnimFromChooser(const FAnimNodeReference& N
 
 bool UGASPAnimInstance::IsAnimationAlmostComplete()
 {
-	// if (!IsInGameThread())
-	// 	return false;
-	// const FAnimNode_AssetPlayerRelevancyBase* AnimNode = GetRelevantAssetPlayerInterfaceFromState(0, 0);
-	// UE_LOG(LogTemp, Warning, TEXT("%s"), *AnimNode->GetAnimAsset()->GetName())
-	// return !MotionMatching.bLoop && MotionMatching.TimeRemaining <= .75f;
-	// UBlendStackAnimNodeLibrary::IsCurrentAssetLooping()
 	const float CurrentTime = GetInstanceAssetPlayerTime(0);
 	const float Length = GetInstanceAssetPlayerLength(0);
 	return !MotionMatching.bLoop && (Length - CurrentTime) <= 0.75f;
@@ -862,7 +858,7 @@ float UGASPAnimInstance::GetDynamicPlayRate(const FAnimNodeReference& Node) cons
 		MinDynamicPlayRate = .75f;
 	}
 
-	// (B != 0.0f) ? (A / B) : 0.0f
+
 	const float SpeedRatio = SpeedCurve != 0.f ? CharacterInfo.Speed / SpeedCurve : 0.f;
 
 	return FMath::Lerp(1.f, FMath::Clamp(SpeedRatio, MinDynamicPlayRate, MaxDynamicPlayRate), AlphaCurve);
@@ -870,7 +866,7 @@ float UGASPAnimInstance::GetDynamicPlayRate(const FAnimNodeReference& Node) cons
 
 void UGASPAnimInstance::OnStateEntryIdleLoop(const FAnimUpdateContext& Context, const FAnimNodeReference& Node)
 {
-	SetBlendStackAnimFromChooser(Node, EStateMachineState::IdleLoop, false);
+	SetBlendStackAnimFromChooser(Node, EStateMachineState::IdleLoop);
 }
 
 void UGASPAnimInstance::OnStateEntryTransitionToIdleLoop(const FAnimUpdateContext& Context,
@@ -883,7 +879,7 @@ void UGASPAnimInstance::OnStateEntryLocomotionLoop(const FAnimUpdateContext& Con
                                                    const FAnimNodeReference& Node)
 {
 	TargetRotationOnTransitionStart = TargetRotation;
-	SetBlendStackAnimFromChooser(Node, EStateMachineState::LocomotionLoop, false);
+	SetBlendStackAnimFromChooser(Node, EStateMachineState::LocomotionLoop);
 }
 
 void UGASPAnimInstance::OnStateEntryTransitionToLocomotionLoop(const FAnimUpdateContext& Context,

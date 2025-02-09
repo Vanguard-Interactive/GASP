@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
-#include "Types/EnumTypes.h"
 #include "Types/StructTypes.h"
 #include "GASPLinkedAnimInstance.generated.h"
 
@@ -48,4 +47,7 @@ public:
 
 	UFUNCTION(BlueprintGetter, meta = (BlueprintThreadSafe))
 	FCharacterInfo GetCharacterInfo() const;
+
+	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
+	float GetAimSweep() const;
 };

@@ -44,7 +44,7 @@ void UAnimNotify_FoleyEvent::Notify(USkeletalMeshComponent* MeshComp, UAnimSeque
 		return;
 	}
 
-	UWorld* WorldContext = Owner->GetWorld();
+	const UWorld* WorldContext = Owner->GetWorld();
 	UGameplayStatics::PlaySoundAtLocation(WorldContext, DefaultBank->GetSoundFromEvent(Event),
 	                                      MeshComp->GetComponentLocation(),
 	                                      VolumeMultiplier, PitchMultiplier);
@@ -69,7 +69,7 @@ void UAnimNotify_FoleyEvent::Notify(USkeletalMeshComponent* MeshComp, UAnimSeque
 	// UVisualLoggerKismetLibrary::LogSphere(WorldContext, SphereCenter, 5.f, VisLogDebugText, VisLogDebugColor,
 	//                                       FName(TEXT("VisLogFoley")));
 	DrawDebugSphere(WorldContext, SphereCenter, 10.f, 12, VisLogDebugColor.ToRGBE(),
-	                false, 3.f, 1.f);
+	                false, 4.f);
 #endif
 }
 
@@ -85,24 +85,25 @@ FString UAnimNotify_FoleyEvent::GetNotifyName_Implementation() const
 bool UAnimNotify_FoleyEvent::GetFoleyAudioBank(const USkeletalMeshComponent* MeshComponent)
 {
 	AActor* Owner = MeshComponent->GetOwner();
+	if (!IsValid(Owner))
+	{
+		return false;
+	}
 
 	if (!ActionTags.HasTag(Event))
 	{
 		return false;
 	}
 
-	if (!IsValid(Owner))
-	{
-		return false;
-	}
-
+	UE_LOG(LogTemp, Display, TEXT("Actor to get foley bank: %s"), *Owner->GetName());
 	IFoleyAudioBankInterface* Interface = Cast<IFoleyAudioBankInterface>(Owner);
 	if (!Interface)
 	{
 		return false;
 	}
 
-	DefaultBank = Interface->GetFoleyAudioBank();
+	UFoleyAudioBankPrimaryDataAsset* FoleyBank = Interface->GetFoleyAudioBank();
+	DefaultBank = IsValid(FoleyBank) ? FoleyBank : DefaultBank;
 
 	if (MovementTags.HasTag(Event))
 	{

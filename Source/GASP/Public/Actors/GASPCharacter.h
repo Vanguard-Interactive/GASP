@@ -30,8 +30,11 @@ class GASP_API AGASPCharacter : public ACharacter, public IFoleyAudioBankInterfa
 	GENERATED_BODY()
 
 protected:
+	UFUNCTION()
+	void OnSoundsPreloaded();
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	virtual void PostInitializeComponents() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -83,7 +86,7 @@ protected:
 	FRagdollingState RagdollingState;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Transient)
-	TSoftObjectPtr<UFoleyAudioBankPrimaryDataAsset> FoleyAudioBank;
+	TObjectPtr<UFoleyAudioBankPrimaryDataAsset> FoleyAudioBank;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TObjectPtr<UAnimMontage> GetUpMontageFront{};
@@ -136,9 +139,6 @@ public:
 	FOnStanceModeChanged StanceModeChanged;
 	UPROPERTY(BlueprintAssignable)
 	FOnLocomotionActionChanged LocomotionActionChanged;
-
-	UFUNCTION()
-	void OnRep_Acceleration();
 
 	// Sets default values for this character's properties
 	explicit AGASPCharacter(const FObjectInitializer& ObjectInitializer);
@@ -287,7 +287,6 @@ private:
 
 	void StopRagdollingImplementation();
 
-private:
 	void SetRagdollTargetLocation(const FVector& NewTargetLocation);
 
 	UFUNCTION(Server, Unreliable)

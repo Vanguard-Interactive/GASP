@@ -35,7 +35,7 @@ void UGASPCharacterMovementComponent::FGASPCharacterNetworkMoveData::ClientFillN
 {
 	Super::ClientFillNetworkMoveData(Move, MoveType);
 
-	const FGASPSavedMove& SavedMove{StaticCast<const FGASPSavedMove&>(Move)};
+	const FGASPSavedMove& SavedMove{static_cast<const FGASPSavedMove&>(Move)};
 
 	SavedRotationMode = SavedMove.SavedRotationMode;
 	SavedGait = SavedMove.SavedGait;
@@ -44,7 +44,7 @@ void UGASPCharacterMovementComponent::FGASPCharacterNetworkMoveData::ClientFillN
 bool UGASPCharacterMovementComponent::FGASPSavedMove::CanCombineWith(const FSavedMovePtr& NewMove,
                                                                      ACharacter* InCharacter, float MaxDelta) const
 {
-	const FGASPSavedMove* NewCombineMove{StaticCast<FGASPSavedMove*>(NewMove.Get())};
+	const FGASPSavedMove* NewCombineMove{static_cast<FGASPSavedMove*>(NewMove.Get())};
 
 	return SavedRotationMode == NewCombineMove->SavedRotationMode && SavedGait == NewCombineMove->SavedGait &&
 		Super::CanCombineWith(NewMove, InCharacter, MaxDelta);
