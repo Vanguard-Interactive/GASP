@@ -5,6 +5,7 @@
 #include "GameplayTagContainer.h"
 #include "Components/GASPCharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 
@@ -85,6 +86,15 @@ void AGASPCharacter::Tick(float DeltaTime)
 	{
 		RefreshRagdolling(DeltaTime);
 	}
+
+	if (MovementMode == ECMovementMode::OnGround)
+	{
+		UE_LOG(LogTemp, Display, TEXT("OnGround tick"));
+		if (StanceMode != EStanceMode::Crouch)
+		{
+			RefreshGait();
+		}
+	}
 }
 
 void AGASPCharacter::PostRegisterAllComponents()
@@ -125,7 +135,7 @@ void AGASPCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 
 	// Replicate to everyone except owner
 	Parameters.Condition = COND_SkipOwner;
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, Gait, Parameters);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, DesiredGait, Parameters);
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, RotationMode, Parameters);
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, MovementMode, Parameters);
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, MovementState, Parameters);
@@ -169,16 +179,35 @@ void AGASPCharacter::SetGait(const EGait NewGait, const bool bForce)
 	if (NewGait != Gait || bForce)
 	{
 		Gait = NewGait;
-		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Gait, this);
+		// MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Gait, this);
 
 		MovementComponent->SetGait(NewGait);
 
-		if (GetLocalRole() == ROLE_AutonomousProxy && IsValid(GetNetConnection()))
-		{
-			Server_SetGait(NewGait);
-		}
+		// if (GetLocalRole() == ROLE_AutonomousProxy && IsValid(GetNetConnection()))
+		// {
+		// 	Server_SetGait(NewGait);
+		// }
 
 		GaitChanged.Broadcast(NewGait);
+	}
+}
+
+void AGASPCharacter::SetDesiredGait(EGait NewGait, bool bForce)
+{
+	if (!ensure(MovementComponent))
+	{
+		return;
+	}
+
+	if (NewGait != Gait || bForce)
+	{
+		DesiredGait = NewGait;
+		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, DesiredGait, this);
+
+		if (GetLocalRole() == ROLE_AutonomousProxy && IsValid(GetNetConnection()))
+		{
+			Server_SetDesiredGait(NewGait);
+		}
 	}
 }
 
@@ -234,9 +263,9 @@ void AGASPCharacter::Server_SetRotationMode_Implementation(const ERotationMode N
 	SetRotationMode(NewRotationMode);
 }
 
-void AGASPCharacter::Server_SetGait_Implementation(const EGait NewGait)
+void AGASPCharacter::Server_SetDesiredGait_Implementation(const EGait NewGait)
 {
-	SetGait(NewGait);
+	SetDesiredGait(NewGait);
 }
 
 void AGASPCharacter::SetMovementState(const EMovementState NewMovementState, const bool bForce)
@@ -319,13 +348,12 @@ bool AGASPCharacter::CanSprint()
 		return false;
 	}
 
-	const FVector Acceleration{
-		IsLocallyControlled()
-			? GetPendingMovementInputVector()
-			: MovementComponent->GetCurrentAcceleration()
-	};
+	const FVector Acceleration{MovementComponent->GetCurrentAcceleration()};
 
-	return FGASPMath::CalculateDirection(Acceleration, GetActorRotation()) < 50.f;
+	FRotator DeltaRot = GetActorRotation() - FRotationMatrix::MakeFromX(Acceleration).Rotator();
+	DeltaRot.Normalize();
+
+	return FMath::Abs(DeltaRot.Yaw) < 50.f;
 }
 
 UGASPCharacterMovementComponent* AGASPCharacter::GetBCharacterMovement() const
@@ -416,6 +444,27 @@ UFoleyAudioBankPrimaryDataAsset* AGASPCharacter::GetFoleyAudioBank()
 bool AGASPCharacter::CanPlayFootstepSounds()
 {
 	return MovementMode == ECMovementMode::OnGround || bDoingTraversal;
+}
+
+void AGASPCharacter::RefreshGait()
+{
+	GEngine->AddOnScreenDebugMessage(1, 1.f, FColor::Blue,
+	                                 FString::Printf(
+		                                 TEXT("Desired gait = %s, Gait = %s"),
+		                                 *FStructEnumLibrary::GetNameStringByValue(DesiredGait),
+		                                 *FStructEnumLibrary::GetNameStringByValue(Gait)));
+	if (DesiredGait == EGait::Sprint)
+	{
+		if (CanSprint())
+		{
+			SetGait(EGait::Sprint);
+			return;
+		}
+		SetGait(EGait::Run);
+		return;
+	}
+
+	SetGait(DesiredGait);
 }
 
 void AGASPCharacter::OnMovementUpdateSimulatedProxy_Implementation(float DeltaSeconds, FVector OldLocation,

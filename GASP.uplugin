@@ -48,6 +48,10 @@
       "Enabled": true
     },
     {
+      "Name": "GameplayTagsEditor",
+      "Enabled": true
+    },
+    {
       "Name": "AnimationLocomotionLibrary",
       "Enabled": true
     },

@@ -168,10 +168,6 @@ void UGASPCharacterMovementComponent::OnMovementModeChanged(EMovementMode Previo
 
 void UGASPCharacterMovementComponent::PhysicsRotation(float DeltaTime)
 {
-	if (HasAnimRootMotion())
-	{
-		return;
-	}
 	Super::PhysicsRotation(DeltaTime);
 }
 

@@ -15,8 +15,6 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GASPAnimInstance)
 
-struct FAnimNode_Root;
-
 void UGASPAnimInstance::OnLanded(const FHitResult& HitResult)
 {
 	bLanded = true;

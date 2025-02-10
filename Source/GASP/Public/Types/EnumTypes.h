@@ -24,26 +24,6 @@ struct GASP_API FStructEnumLibrary
 	}
 };
 
-UENUM(BlueprintType)
-enum class EOverlayState : uint8
-{
-	Default,
-	Masculine,
-	Feminine,
-	Injured,
-	HandsTied,
-	Rifle,
-	PistolOneHanded,
-	PistolTwoHanded,
-	Bow,
-	Torch,
-	Binoculars,
-	Box,
-	Barrel,
-	GreatSword,
-	Katana,
-};
-
 /**
  * Movement gait
  */
@@ -66,6 +46,33 @@ enum class ERotationMode : uint8
 	Aim
 };
 
+UENUM(BlueprintType, meta = (ScriptName = "EOverlayState"))
+enum class EOverlayState : uint8
+{
+	Default,
+	Masculine,
+	Feminine,
+	Injured,
+	HandsTied,
+	Rifle,
+	PistolOneHanded,
+	PistolTwoHanded,
+	Bow,
+	Torch,
+	Binoculars,
+	Box,
+	Barrel,
+	GreatSword,
+	Katana,
+};
+
+UENUM(BlueprintType, meta = (ScriptName = "ELocomotionAction"))
+enum class ELocomotionAction : uint8
+{
+	None,
+	Ragdoll
+};
+
 /**
  *
  */
@@ -74,13 +81,6 @@ enum class ECMovementMode : uint8
 {
 	OnGround,
 	InAir
-};
-
-UENUM(BlueprintType, meta = (ScriptName = "ECMovementMode"))
-enum class ELocomotionAction : uint8
-{
-	None,
-	Ragdoll
 };
 
 /**

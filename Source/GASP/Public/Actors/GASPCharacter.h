@@ -44,10 +44,10 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	ERotationMode DesiredRotationMode{ERotationMode::Strafe};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
 	EGait DesiredGait{EGait::Run};
 
-	UPROPERTY(BlueprintReadOnly, Replicated)
+	UPROPERTY(BlueprintReadOnly)
 	EGait Gait{EGait::Run};
 	UPROPERTY(BlueprintReadOnly, Replicated)
 	ERotationMode RotationMode{ERotationMode::Strafe};
@@ -62,20 +62,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Transient)
 	ELocomotionAction LocomotionAction{ELocomotionAction::None};
 
-	UPROPERTY(BlueprintReadOnly)
-	EGait PreviousGait{EGait::Run};
-	UPROPERTY(BlueprintReadOnly, Replicated)
-	ERotationMode PreviousRotationMode{ERotationMode::Strafe};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Transient)
-	EMovementState PreviousMovementState{EMovementState::Idle};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Transient)
 	ECMovementMode PreviousMovementMode{ECMovementMode::OnGround};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Transient)
-	EStanceMode PreviousStanceMode{EStanceMode::Stand};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Transient)
-	EOverlayState PreviousOverlayState{EOverlayState::Default};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Transient)
-	ELocomotionAction PreviousLocomotionAction{ELocomotionAction::None};
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Transient)
 	FVector_NetQuantize ReplicatedAcceleration{ForceInit};
@@ -126,6 +114,8 @@ public:
 	virtual UFoleyAudioBankPrimaryDataAsset* GetFoleyAudioBank() override;
 	virtual bool CanPlayFootstepSounds() override;
 
+	void RefreshGait();
+
 	UPROPERTY(BlueprintAssignable)
 	FOnOverlayStateChanged OverlayStateChanged;
 
@@ -165,8 +155,11 @@ public:
 	 ****************************/
 	UFUNCTION(BlueprintSetter)
 	void SetGait(EGait NewGait, bool bForce = false);
+
+	UFUNCTION(BlueprintSetter)
+	void SetDesiredGait(EGait NewGait, bool bForce = false);
 	UFUNCTION(Server, Reliable)
-	void Server_SetGait(EGait NewGait);
+	void Server_SetDesiredGait(EGait NewGait);
 
 	UFUNCTION(BlueprintSetter)
 	void SetRotationMode(ERotationMode NewRotationMode, bool bForce = false);
@@ -194,9 +187,9 @@ public:
 	void Server_SetOverlayState(EOverlayState NewOverlayState);
 
 	UFUNCTION(BlueprintSetter)
-	void SetLocomotionAction(ELocomotionAction NewMovementAction, bool bForce = false);
+	void SetLocomotionAction(ELocomotionAction NewLocomotionAction, bool bForce = false);
 	UFUNCTION(Server, Reliable)
-	void Server_SetLocomotionAction(ELocomotionAction NewMovementAction);
+	void Server_SetLocomotionAction(ELocomotionAction NewLocomotionAction);
 
 	UFUNCTION(BlueprintPure)
 	virtual bool CanSprint();

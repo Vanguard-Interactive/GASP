@@ -95,7 +95,6 @@ bool UAnimNotify_FoleyEvent::GetFoleyAudioBank(const USkeletalMeshComponent* Mes
 		return false;
 	}
 
-	UE_LOG(LogTemp, Display, TEXT("Actor to get foley bank: %s"), *Owner->GetName());
 	IFoleyAudioBankInterface* Interface = Cast<IFoleyAudioBankInterface>(Owner);
 	if (!Interface)
 	{
@@ -103,7 +102,7 @@ bool UAnimNotify_FoleyEvent::GetFoleyAudioBank(const USkeletalMeshComponent* Mes
 	}
 
 	UFoleyAudioBankPrimaryDataAsset* FoleyBank = Interface->GetFoleyAudioBank();
-	DefaultBank = IsValid(FoleyBank) ? FoleyBank : DefaultBank;
+	DefaultBank = IsValid(FoleyBank) ? TObjectPtr<UFoleyAudioBankPrimaryDataAsset>(FoleyBank) : DefaultBank;
 
 	if (MovementTags.HasTag(Event))
 	{
