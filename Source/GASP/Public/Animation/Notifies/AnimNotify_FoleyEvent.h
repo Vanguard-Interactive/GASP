@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
-#include "Audio/FoleyAudioBankPrimaryDataAsset.h"
+#include "Audio/GASPFoleyAudioBankPrimaryDataAsset.h"
 #include "Types/EnumTypes.h"
 #include "AnimNotify_FoleyEvent.generated.h"
 
@@ -30,7 +30,7 @@ protected:
 	float PitchMultiplier{1.f};
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AnimNotify")
-	TObjectPtr<UFoleyAudioBankPrimaryDataAsset> DefaultBank{};
+	TObjectPtr<UGASPFoleyAudioBankPrimaryDataAsset> DefaultBank{};
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AnimNotify|Debug")
 	FLinearColor VisLogDebugColor{FLinearColor::Black};
@@ -41,6 +41,9 @@ protected:
 	FGameplayTagContainer ActionTags{};
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AnimNotify")
 	FGameplayTagContainer MovementTags{};
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AnimNotify")
+	float TraceLength{15.f};
 
 public:
 	UAnimNotify_FoleyEvent();

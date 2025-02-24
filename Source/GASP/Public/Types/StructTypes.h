@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Types/EnumTypes.h"
 #include "Utils/GASPMath.h"
+#include "Types/GameplayTags.h"
 #include "Curves/CurveFloat.h"
 #include "Curves/CurveVector.h"
 #include "StructTypes.generated.h"
@@ -321,7 +322,7 @@ struct GASP_API FCharacterInfo
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	float MaxTurnAngle{50.f};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Meta = (ClampMin = 0, ForceUnits = "s"))
 	float Speed{0.f};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float Direction{0.f};
@@ -584,4 +585,63 @@ struct GASP_API FGASPTraversalCheckInputs
 	float TraceRadius{.0f};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP")
 	float TraceHalfHeight{.0f};
+};
+
+USTRUCT(BlueprintType)
+struct GASP_API FGASPBlendPoses
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP")
+	float BasePoseN{.0f};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP")
+	float BasePoseCLF{.0f};
+};
+
+USTRUCT(BlueprintType)
+struct GASP_API FTraversalCheckResult
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Traversal")
+	FGameplayTagContainer ActionType{LocomotionActionTags::None};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Traversal")
+	uint8 bHasFrontLedge : 1{false};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Traversal")
+	FVector FrontLedgeLocation{FVector::ZeroVector};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Traversal")
+	FVector FrontLedgeNormal{FVector::ZeroVector};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Traversal")
+	uint8 bHasBackLedge : 1{false};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Traversal")
+	FVector BackLedgeLocation{FVector::ZeroVector};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Traversal")
+	FVector BackLedgeNormal{FVector::ZeroVector};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Traversal")
+	uint8 bHasBackFloor : 1{false};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Traversal")
+	FVector BackFloorLocation{FVector::ZeroVector};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Traversal")
+	float ObstacleHeight{0.f};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Traversal")
+	float ObstacleDepth{0.f};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Traversal")
+	float BackLedgeHeight{0.f};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Traversal")
+	TObjectPtr<UPrimitiveComponent> HitComponent{};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Traversal")
+	TObjectPtr<const UAnimMontage> ChosenMontage{};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Traversal")
+	float StartTime{0.f};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Traversal")
+	float PlayRate{0.f};
+
+	FORCEINLINE FString ToString() const
+	{
+		return FString::Printf(
+			TEXT(
+				"Has Front Ledge: %hhd\nHas Back Ledge: %hhd\nHas Back Floor:%hhd\nObstacle Height: %f\nObstacle Depth: %f\nBack Ledge Height: %f\nChosen Animation: %s\nAnimation Start Time: %f\nAnimation Play Rate: %f"),
+			bHasFrontLedge, bHasBackLedge, bHasBackFloor, ObstacleHeight, ObstacleDepth, BackLedgeHeight,
+			IsValid(ChosenMontage) ? *ChosenMontage->GetName() : TEXT("nullptr"), StartTime, PlayRate);
+	}
 };

@@ -4,6 +4,8 @@
 #include "Animation/GASPLinkedAnimInstance.h"
 #include "Animation/GASPAnimInstance.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(GASPLinkedAnimInstance)
+
 UGASPLinkedAnimInstance::UGASPLinkedAnimInstance()
 {
 	bUseMainInstanceMontageEvaluationData = true;

@@ -2,14 +2,16 @@
 
 
 #include "Animation/Notifies/AnimNotifyState_MontageBlendOut.h"
-
 #include "Actors/GASPCharacter.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Types/EnumTypes.h"
+
+#include UE_INLINE_GENERATED_CPP_BY_NAME(AnimNotifyState_MontageBlendOut)
 
 FString UAnimNotifyState_MontageBlendOut::GetNotifyName_Implementation() const
 {
 	FString Name{TEXT("Early Blend out - ")};
-	return Name.Append(FStructEnumLibrary::GetNameStringByValue(BlendOutCondition));
+	return Name.Append(GetNameStringByValue(BlendOutCondition));
 }
 
 void UAnimNotifyState_MontageBlendOut::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
@@ -22,7 +24,7 @@ void UAnimNotifyState_MontageBlendOut::NotifyTick(USkeletalMeshComponent* MeshCo
 		return;
 	}
 
-	AGASPCharacter* Character = static_cast<AGASPCharacter*>(MeshComp->GetOwner());
+	const AGASPCharacter* Character = static_cast<AGASPCharacter*>(MeshComp->GetOwner());
 	if (!IsValid(Character))
 	{
 		return;
@@ -41,26 +43,25 @@ void UAnimNotifyState_MontageBlendOut::NotifyTick(USkeletalMeshComponent* MeshCo
 		switch (BlendOutCondition)
 		{
 		case ETraversalBlendOutCondition::WithMovementInput:
-			return Character->GetReplicatedAcceleration().IsNearlyZero(.1f);
+			return !Character->GetReplicatedAcceleration().IsNearlyZero(.1f);
 
 		case ETraversalBlendOutCondition::IfFalling:
 			return Character->GetMovementMode() == ECMovementMode::InAir;
-
-		default: return true;
+		default:
+			return true;
 		}
 	}();
 
-	if (!ShouldBlendOut)
+	if (ShouldBlendOut)
 	{
-		return;
+		FMontageBlendSettings BlendOutSettings{AnimMontage->BlendOut};
+		BlendOutSettings.Blend.BlendTime = BlendOutTime;
+		BlendOutSettings.Blend.BlendOption = EAlphaBlendOption::HermiteCubic;
+		BlendOutSettings.Blend.CustomCurve = nullptr;
+		BlendOutSettings.BlendMode = AnimMontage->BlendModeOut;
+		BlendOutSettings.BlendProfile = const_cast<UBlendProfile*>(AnimInstance->
+			GetBlendProfileByName(BlendProfile));
+
+		AnimInstance->Montage_StopWithBlendSettings(BlendOutSettings, AnimMontage);
 	}
-
-	FMontageBlendSettings MontageBlendSettings;
-	MontageBlendSettings.Blend.BlendTime = BlendOutTime;
-	MontageBlendSettings.Blend.BlendOption = EAlphaBlendOption::HermiteCubic;
-	MontageBlendSettings.Blend.CustomCurve = nullptr;
-	MontageBlendSettings.BlendProfile = const_cast<UBlendProfile*>(AnimInstance->GetBlendProfileByName(BlendProfile));
-	MontageBlendSettings.BlendMode = EMontageBlendMode::Standard;
-
-	AnimInstance->Montage_StopWithBlendSettings(MontageBlendSettings, AnimMontage);
 }

@@ -1,0 +1,44 @@
+﻿// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Actors/GASPCharacter.h"
+#include "GASPCharacterExample.generated.h"
+
+UCLASS()
+class GASPEXTRAS_API AGASPCharacterExample : public AGASPCharacter
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<class UGameplayCameraComponent> GameplayCamera{};
+
+protected:
+	virtual void PossessedBy(AController* NewController) override;
+
+public:
+	// Sets default values for this character's properties
+	AGASPCharacterExample(const FObjectInitializer& ObjectInitializer);
+
+	UFUNCTION(BlueprintCallable, Category="Input|Actions")
+	virtual void SprintAction(bool bPressed);
+
+	UFUNCTION(BlueprintCallable, Category="Input|Actions")
+	virtual void WalkAction(bool bPressed);
+
+	UFUNCTION(BlueprintCallable, Category="Input|Actions")
+	virtual void CrouchAction(bool bPressed);
+
+	UFUNCTION(BlueprintCallable, Category="Input|Actions")
+	virtual void JumpAction(bool bPressed);
+
+	UFUNCTION(BlueprintCallable, Category="Input|Actions")
+	virtual void AimAction(bool bPressed);
+
+	UFUNCTION(BlueprintCallable, Category="Input|Actions")
+	virtual void RagdollAction(bool bPressed);
+
+	UFUNCTION(BlueprintCallable, Category="Input|Actions")
+	virtual void StrafeAction(bool bPressed);
+};

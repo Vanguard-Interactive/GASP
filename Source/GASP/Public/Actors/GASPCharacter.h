@@ -4,34 +4,45 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "Components/GASPTraversalComponent.h"
 #include "GameFramework/Character.h"
-#include "Interfaces/FoleyAudioBankInterface.h"
 #include "Types/EnumTypes.h"
+#include "Types/GameplayTags.h"
 #include "Types/StructTypes.h"
 #include "GASPCharacter.generated.h"
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnOverlayModeChanged, FGameplayTag, OldOverlayMode);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnOverlayStateChanged, EOverlayState, NewOverlayState);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRotationModeChanged, ERotationMode, OldRotationMode);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRotationModeChanged, ERotationMode, NewRotationMode);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGaitChanged, EGait, OldGait);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGaitChanged, EGait, NewGait);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMovementStateChanged, EMovementState, OldMovementState);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMovementStateChanged, EMovementState, NewMovementState);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStanceModeChanged, EStanceMode, OldStanceMode);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStanceModeChanged, EStanceMode, NetStanceMode);
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLocomotionActionChanged, ELocomotionAction, NewLocomotionAction);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLocomotionActionChanged, FGameplayTag, OldLocomotionAction);
 
 class UGASPCharacterMovementComponent;
 
 UCLASS(Abstract)
-class GASP_API AGASPCharacter : public ACharacter, public IFoleyAudioBankInterface
+class GASP_API AGASPCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
+	UFUNCTION(BlueprintSetter)
+	void SetMovementMode(ECMovementMode NewMovementMode, bool bForce = false);
+	UFUNCTION(Server, Reliable)
+	void Server_SetMovementMode(ECMovementMode NewMovementMode);
+
+	UPROPERTY(Transient)
+	TObjectPtr<UGASPCharacterMovementComponent> MovementComponent{};
+
 protected:
-	UFUNCTION()
-	void OnSoundsPreloaded();
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<class UMotionWarpingComponent> MotionWarpingComponent{};
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components", Replicated)
+	TObjectPtr<class UGASPTraversalComponent> TraversalComponent{};
+
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -39,17 +50,13 @@ protected:
 	virtual void PostInitializeComponents() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PrevCustomMode) override;
-	UPROPERTY()
-	TObjectPtr<UGASPCharacterMovementComponent> MovementComponent{};
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	ERotationMode DesiredRotationMode{ERotationMode::Strafe};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Transient)
 	EGait DesiredGait{EGait::Run};
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Transient)
 	EGait Gait{EGait::Run};
-	UPROPERTY(BlueprintReadOnly, Replicated)
+	UPROPERTY(BlueprintReadOnly, Replicated, Transient)
 	ERotationMode RotationMode{ERotationMode::Strafe};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Transient)
 	EMovementState MovementState{EMovementState::Idle};
@@ -58,44 +65,36 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Transient)
 	EStanceMode StanceMode{EStanceMode::Stand};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Transient)
-	EOverlayState OverlayState{EOverlayState::Default};
+	FGameplayTag OverlayMode{OverlayModeTags::Default};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Transient)
-	ELocomotionAction LocomotionAction{ELocomotionAction::None};
+	FGameplayTag LocomotionAction{LocomotionActionTags::None};
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Transient)
+	UPROPERTY(BlueprintReadOnly, Transient)
 	ECMovementMode PreviousMovementMode{ECMovementMode::OnGround};
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Transient)
+	UPROPERTY(BlueprintReadOnly, Replicated, Transient)
 	FVector_NetQuantize ReplicatedAcceleration{ForceInit};
-	UPROPERTY(BlueprintReadOnly, Replicated)
+	UPROPERTY(BlueprintReadOnly, Replicated, Transient)
 	FVector_NetQuantize RagdollTargetLocation{ForceInit};
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Character", Transient)
 	FRagdollingState RagdollingState;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Transient)
-	TObjectPtr<UFoleyAudioBankPrimaryDataAsset> FoleyAudioBank;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TObjectPtr<UAnimMontage> GetUpMontageFront{};
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TObjectPtr<UAnimMontage> GetUpMontageBack{};
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	bool bLimitInitialRagdollSpeed;
+	uint8 bLimitInitialRagdollSpeed : 1{false};
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	FGameplayTag FoleyJumpTag;
+	FGameplayTag FoleyJumpTag{FoleyTags::Jump};
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	FGameplayTag FoleyLandTag;
+	FGameplayTag FoleyLandTag{FoleyTags::Land};
 
 	void SetReplicatedAcceleration(FVector NewAcceleration);
 
 	UFUNCTION(BlueprintPure)
 	UAnimMontage* SelectGetUpMontage(bool bRagdollFacingUpward);
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	bool bDoingTraversal{false};
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	float IgnoreCorrectionsDelay{.2f};
 
 	virtual void OnWalkingOffLedge_Implementation(const FVector& PreviousFloorImpactNormal,
 	                                              const FVector& PreviousFloorContactNormal,
@@ -104,20 +103,25 @@ protected:
 	UFUNCTION(BlueprintNativeEvent)
 	void OnMovementUpdateSimulatedProxy(float DeltaSeconds, FVector OldLocation, FVector OldVelocity);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintImplementableEvent)
 	void PlayAudioEvent(const FGameplayTag GameplayTag, const float VolumeMultiplier = 1.f,
 	                    const float PitchMultiplier = 1.f);
 
 	virtual void OnJumped_Implementation() override;
 
-public:
-	virtual UFoleyAudioBankPrimaryDataAsset* GetFoleyAudioBank() override;
-	virtual bool CanPlayFootstepSounds() override;
+	/** Please add a function description */
+	UFUNCTION(BlueprintPure, Category = "Traversal")
+	FTraversalCheckInputs GetTraversalCheckInputs() const;
 
+public:
 	void RefreshGait();
 
+	UFUNCTION(BlueprintCallable, Category="Traversal")
+	FTraversalResult TryTraversalAction();
+	UFUNCTION(BlueprintPure, Category="Traversal")
+	bool IsDoingTraversal() const;
 	UPROPERTY(BlueprintAssignable)
-	FOnOverlayStateChanged OverlayStateChanged;
+	FOnOverlayModeChanged OverlayModeChanged;
 
 	UPROPERTY(BlueprintAssignable)
 	FOnGaitChanged GaitChanged;
@@ -167,11 +171,6 @@ public:
 	void Server_SetRotationMode(ERotationMode NewRotationMode);
 
 	UFUNCTION(BlueprintSetter)
-	void SetMovementMode(ECMovementMode NewMovementMode, bool bForce = false);
-	UFUNCTION(Server, Reliable)
-	void Server_SetMovementMode(ECMovementMode NewMovementMode);
-
-	UFUNCTION(BlueprintSetter)
 	void SetMovementState(EMovementState NewMovementState, bool bForce = false);
 	UFUNCTION(Server, Reliable)
 	void Server_SetMovementState(EMovementState NewMovementState);
@@ -182,14 +181,14 @@ public:
 	void Server_SetStanceMode(EStanceMode NewStanceMode);
 
 	UFUNCTION(BlueprintSetter)
-	void SetOverlayState(EOverlayState NewOverlayState, bool bForce = false);
+	void SetOverlayMode(FGameplayTag NewOverlayMode, bool bForce = false);
 	UFUNCTION(Server, Reliable)
-	void Server_SetOverlayState(EOverlayState NewOverlayState);
+	void Server_SetOverlayMode(FGameplayTag NewOverlayMode);
 
 	UFUNCTION(BlueprintSetter)
-	void SetLocomotionAction(ELocomotionAction NewLocomotionAction, bool bForce = false);
+	void SetLocomotionAction(FGameplayTag NewLocomotionAction, bool bForce = false);
 	UFUNCTION(Server, Reliable)
-	void Server_SetLocomotionAction(ELocomotionAction NewLocomotionAction);
+	void Server_SetLocomotionAction(FGameplayTag NewLocomotionAction);
 
 	UFUNCTION(BlueprintPure)
 	virtual bool CanSprint();
@@ -202,13 +201,13 @@ public:
 	}
 
 	UFUNCTION(BlueprintGetter)
-	FORCEINLINE EOverlayState GetOverlayState() const
+	FORCEINLINE FGameplayTag GetOverlayMode() const
 	{
-		return OverlayState;
+		return OverlayMode;
 	}
 
 	UFUNCTION(BlueprintGetter)
-	FORCEINLINE ELocomotionAction GetLocomotionAction() const
+	FORCEINLINE FGameplayTag GetLocomotionAction() const
 	{
 		return LocomotionAction;
 	}
@@ -252,7 +251,6 @@ public:
 		return RagdollingState;
 	}
 
-public:
 	UFUNCTION(BlueprintCallable, Category = "GASP|Character")
 	void StartRagdolling();
 

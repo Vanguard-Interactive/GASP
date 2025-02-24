@@ -5,6 +5,8 @@
 #include "Animation/GASPAnimInstance.h"
 #include "Types/EnumTypes.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(AnimNotifyState_EarlyTransition)
+
 void UAnimNotifyState_EarlyTransition::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
                                                   float FrameDeltaTime, const FAnimNotifyEventReference& EventReference)
 {
@@ -26,7 +28,7 @@ void UAnimNotifyState_EarlyTransition::NotifyTick(USkeletalMeshComponent* MeshCo
 		return;
 	}
 
-	bool bTransition = [&]()
+	const bool bTransition = [&]()
 	{
 		switch (TransitionCondition)
 		{
@@ -55,16 +57,16 @@ void UAnimNotifyState_EarlyTransition::NotifyTick(USkeletalMeshComponent* MeshCo
 
 FString UAnimNotifyState_EarlyTransition::GetNotifyName_Implementation() const
 {
-	FString Output{FStructEnumLibrary::GetNameStringByValue(TransitionDestination)};
+	FString Output{GetNameStringByValue(TransitionDestination)};
 
 	switch (TransitionCondition)
 	{
 	case EEarlyTransitionCondition::GaitNotEqual:
 		Output.Append(TEXT(" - If - "));
-		Output.Append(FStructEnumLibrary::GetNameStringByValue(TransitionCondition));
+		Output.Append(GetNameStringByValue(TransitionCondition));
 		Output.Append(TEXT(" - "));
 		Output.Append(TransitionCondition == EEarlyTransitionCondition::GaitNotEqual
-			              ? FStructEnumLibrary::GetNameStringByValue(GaitNotEqual)
+			              ? GetNameStringByValue(GaitNotEqual)
 			              : TEXT(""));
 		break;
 	default:

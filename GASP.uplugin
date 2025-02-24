@@ -20,6 +20,11 @@
       "Name": "GASP",
       "Type": "Runtime",
       "LoadingPhase": "Default"
+    },
+    {
+      "Name": "GASPExtras",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
     }
   ],
   "Plugins": [
@@ -45,6 +50,14 @@
     },
     {
       "Name": "BlendStack",
+      "Enabled": true
+    },
+    {
+      "Name": "GameplayCameras",
+      "Enabled": true
+    },
+    {
+      "Name": "EnhancedInput",
       "Enabled": true
     },
     {

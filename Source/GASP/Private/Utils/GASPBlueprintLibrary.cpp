@@ -4,6 +4,8 @@
 #include "Utils/GASPBlueprintLibrary.h"
 #include "GameFramework/Character.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(GASPBlueprintLibrary)
+
 float UGASPBlueprintLibrary::GetAnimationCurveValueFromCharacter(const ACharacter* Character, const FName& CurveName)
 {
 	const auto* Mesh{IsValid(Character) ? Character->GetMesh() : nullptr};

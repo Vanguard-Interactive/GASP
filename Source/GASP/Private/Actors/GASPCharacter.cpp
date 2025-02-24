@@ -1,11 +1,10 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Actors/GASPCharacter.h"
-
+#include "MotionWarpingComponent.h"
 #include "GameplayTagContainer.h"
 #include "Components/GASPCharacterMovementComponent.h"
-#include "Kismet/GameplayStatics.h"
-#include "Kismet/KismetMathLibrary.h"
+#include "Components/GASPTraversalComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 
@@ -20,18 +19,19 @@ AGASPCharacter::AGASPCharacter(const FObjectInitializer& ObjectInitializer)
 	PrimaryActorTick.bCanEverTick = true;
 	bUseControllerRotationRoll = bUseControllerRotationPitch = bUseControllerRotationYaw = false;
 
-	bReplicates = true;
+	SetReplicates(true);
 	SetReplicatingMovement(true);
 
-	GetMesh()->bEnableUpdateRateOptimizations = false;
-	MovementComponent = Cast<UGASPCharacterMovementComponent>(GetCharacterMovement());
-}
+	if (GetMesh())
+	{
+		GetMesh()->bEnableUpdateRateOptimizations = false;
+		GetMesh()->SetRelativeRotation_Direct({0.f, -90.f, 0.f});
+		GetMesh()->SetRelativeLocation_Direct({0.f, 0.f, -90.f});
+	}
 
-void AGASPCharacter::OnSoundsPreloaded()
-{
-#if WITH_EDITOR
-	UE_LOG(LogTemp, Display, TEXT("Sound asset preloaded"))
-#endif
+	MovementComponent = Cast<UGASPCharacterMovementComponent>(GetCharacterMovement());
+	MotionWarpingComponent = CreateDefaultSubobject<UMotionWarpingComponent>(TEXT("MotionWarping"));
+	TraversalComponent = CreateDefaultSubobject<UGASPTraversalComponent>(TEXT("TraversalComponent"));
 }
 
 // Called when the game starts or when spawned
@@ -45,9 +45,9 @@ void AGASPCharacter::BeginPlay()
 	}
 
 	SetGait(DesiredGait, true);
-	SetRotationMode(DesiredRotationMode, true);
-	SetOverlayState(OverlayState, true);
-	SetLocomotionAction(ELocomotionAction::None, true);
+	SetRotationMode(RotationMode, true);
+	SetOverlayMode(OverlayMode, true);
+	SetLocomotionAction(LocomotionActionTags::None, true);
 
 	if (GetLocalRole() == ROLE_SimulatedProxy)
 	{
@@ -58,11 +58,6 @@ void AGASPCharacter::BeginPlay()
 void AGASPCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
-
-	if (FoleyAudioBank)
-	{
-		FoleyAudioBank->OnSoundsPreloaded.RemoveDynamic(this, &ThisClass::OnSoundsPreloaded);
-	}
 }
 
 // Called every frame
@@ -82,14 +77,13 @@ void AGASPCharacter::Tick(float DeltaTime)
 	const bool IsMoving = !MovementComponent->Velocity.IsNearlyZero(.1f) && !ReplicatedAcceleration.IsZero();
 	SetMovementState(IsMoving ? EMovementState::Moving : EMovementState::Idle);
 
-	if (LocomotionAction == ELocomotionAction::Ragdoll)
+	if (LocomotionAction == LocomotionActionTags::Ragdoll)
 	{
 		RefreshRagdolling(DeltaTime);
 	}
 
 	if (MovementMode == ECMovementMode::OnGround)
 	{
-		UE_LOG(LogTemp, Display, TEXT("OnGround tick"));
 		if (StanceMode != EStanceMode::Crouch)
 		{
 			RefreshGait();
@@ -142,12 +136,12 @@ void AGASPCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, StanceMode, Parameters);
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, LocomotionAction, Parameters);
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, ReplicatedAcceleration, Parameters);
-
-	DOREPLIFETIME(ThisClass, RagdollTargetLocation);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, TraversalComponent, Parameters);
 
 	// Replicate to everyone
 	Parameters.Condition = COND_None;
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, OverlayState, Parameters);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, OverlayMode, Parameters);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, RagdollTargetLocation, Parameters);
 }
 
 void AGASPCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PrevCustomMode)
@@ -178,17 +172,11 @@ void AGASPCharacter::SetGait(const EGait NewGait, const bool bForce)
 
 	if (NewGait != Gait || bForce)
 	{
+		const auto& OldGait{Gait};
 		Gait = NewGait;
-		// MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, Gait, this);
-
 		MovementComponent->SetGait(NewGait);
 
-		// if (GetLocalRole() == ROLE_AutonomousProxy && IsValid(GetNetConnection()))
-		// {
-		// 	Server_SetGait(NewGait);
-		// }
-
-		GaitChanged.Broadcast(NewGait);
+		GaitChanged.Broadcast(OldGait);
 	}
 }
 
@@ -220,6 +208,7 @@ void AGASPCharacter::SetRotationMode(const ERotationMode NewRotationMode, const 
 
 	if (NewRotationMode != RotationMode || bForce)
 	{
+		const auto& OldRotationMode{RotationMode};
 		RotationMode = NewRotationMode;
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, RotationMode, this);
 
@@ -230,7 +219,7 @@ void AGASPCharacter::SetRotationMode(const ERotationMode NewRotationMode, const 
 			Server_SetRotationMode(NewRotationMode);
 		}
 
-		RotationModeChanged.Broadcast(NewRotationMode);
+		RotationModeChanged.Broadcast(OldRotationMode);
 	}
 }
 
@@ -277,6 +266,7 @@ void AGASPCharacter::SetMovementState(const EMovementState NewMovementState, con
 
 	if (NewMovementState != MovementState || bForce)
 	{
+		const auto& OldMovementState{MovementState};
 		MovementState = NewMovementState;
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, MovementState, this);
 
@@ -284,7 +274,7 @@ void AGASPCharacter::SetMovementState(const EMovementState NewMovementState, con
 		{
 			Server_SetMovementState(NewMovementState);
 		}
-		MovementStateChanged.Broadcast(NewMovementState);
+		MovementStateChanged.Broadcast(OldMovementState);
 	}
 }
 
@@ -292,6 +282,7 @@ void AGASPCharacter::SetStanceMode(EStanceMode NewStanceMode, bool bForce)
 {
 	if (StanceMode != NewStanceMode || bForce)
 	{
+		const auto& OldStanceMode{StanceMode};
 		StanceMode = NewStanceMode;
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, StanceMode, this);
 
@@ -301,7 +292,7 @@ void AGASPCharacter::SetStanceMode(EStanceMode NewStanceMode, bool bForce)
 		{
 			Server_SetStanceMode(NewStanceMode);
 		}
-		StanceModeChanged.Broadcast(NewStanceMode);
+		StanceModeChanged.Broadcast(OldStanceMode);
 	}
 }
 
@@ -361,25 +352,27 @@ UGASPCharacterMovementComponent* AGASPCharacter::GetBCharacterMovement() const
 	return static_cast<UGASPCharacterMovementComponent*>(GetCharacterMovement());
 }
 
-void AGASPCharacter::SetOverlayState(const EOverlayState NewOverlayState, const bool bForce)
+void AGASPCharacter::SetOverlayMode(const FGameplayTag NewOverlayMode, const bool bForce)
 {
-	if (NewOverlayState != OverlayState || bForce)
+	if (NewOverlayMode != OverlayMode || bForce)
 	{
-		OverlayState = NewOverlayState;
-		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, OverlayState, this);
+		const auto& OldOverlayMode{OverlayMode};
+		OverlayMode = NewOverlayMode;
+		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, OverlayMode, this);
 
 		if (GetLocalRole() == ROLE_AutonomousProxy)
 		{
-			Server_SetOverlayState(NewOverlayState);
+			Server_SetOverlayMode(NewOverlayMode);
 		}
-		OverlayStateChanged.Broadcast(NewOverlayState);
+		OverlayModeChanged.Broadcast(OldOverlayMode);
 	}
 }
 
-void AGASPCharacter::SetLocomotionAction(ELocomotionAction NewLocomotionAction, bool bForce)
+void AGASPCharacter::SetLocomotionAction(FGameplayTag NewLocomotionAction, bool bForce)
 {
 	if (NewLocomotionAction != LocomotionAction || bForce)
 	{
+		const auto& OldLocomotionAction{LocomotionAction};
 		LocomotionAction = NewLocomotionAction;
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, LocomotionAction, this);
 
@@ -387,18 +380,18 @@ void AGASPCharacter::SetLocomotionAction(ELocomotionAction NewLocomotionAction, 
 		{
 			Server_SetLocomotionAction(NewLocomotionAction);
 		}
-		LocomotionActionChanged.Broadcast(NewLocomotionAction);
+		LocomotionActionChanged.Broadcast(OldLocomotionAction);
 	}
 }
 
-void AGASPCharacter::Server_SetLocomotionAction_Implementation(ELocomotionAction NewLocomotionAction)
+void AGASPCharacter::Server_SetLocomotionAction_Implementation(FGameplayTag NewLocomotionAction)
 {
 	SetLocomotionAction(NewLocomotionAction);
 }
 
-void AGASPCharacter::Server_SetOverlayState_Implementation(const EOverlayState NewOverlayState)
+void AGASPCharacter::Server_SetOverlayMode_Implementation(const FGameplayTag NewOverlayMode)
 {
-	SetOverlayState(NewOverlayState);
+	SetOverlayMode(NewOverlayMode);
 }
 
 void AGASPCharacter::SetReplicatedAcceleration(FVector NewAcceleration)
@@ -415,18 +408,6 @@ void AGASPCharacter::OnWalkingOffLedge_Implementation(const FVector& PreviousFlo
 	UnCrouch();
 }
 
-void AGASPCharacter::PlayAudioEvent(const FGameplayTag GameplayTag, const float VolumeMultiplier,
-                                    const float PitchMultiplier)
-{
-	UFoleyAudioBankPrimaryDataAsset* AudioBank = GetFoleyAudioBank();
-	if (IsValid(AudioBank))
-	{
-		USoundBase* Sound{AudioBank->GetSoundFromEvent(GameplayTag)};
-		UGameplayStatics::PlaySoundAtLocation(GetWorld(), Sound, GetMesh()->GetComponentLocation(), VolumeMultiplier,
-		                                      PitchMultiplier);
-	}
-}
-
 void AGASPCharacter::OnJumped_Implementation()
 {
 	Super::OnJumped_Implementation();
@@ -436,23 +417,8 @@ void AGASPCharacter::OnJumped_Implementation()
 	PlayAudioEvent(FoleyJumpTag, VolumeMultiplier);
 }
 
-UFoleyAudioBankPrimaryDataAsset* AGASPCharacter::GetFoleyAudioBank()
-{
-	return FoleyAudioBank;
-}
-
-bool AGASPCharacter::CanPlayFootstepSounds()
-{
-	return MovementMode == ECMovementMode::OnGround || bDoingTraversal;
-}
-
 void AGASPCharacter::RefreshGait()
 {
-	GEngine->AddOnScreenDebugMessage(1, 1.f, FColor::Blue,
-	                                 FString::Printf(
-		                                 TEXT("Desired gait = %s, Gait = %s"),
-		                                 *FStructEnumLibrary::GetNameStringByValue(DesiredGait),
-		                                 *FStructEnumLibrary::GetNameStringByValue(Gait)));
 	if (DesiredGait == EGait::Sprint)
 	{
 		if (CanSprint())
@@ -477,15 +443,53 @@ void AGASPCharacter::OnMovementUpdateSimulatedProxy_Implementation(float DeltaSe
 		{
 		case ECMovementMode::OnGround:
 			VolumeMultiplier = FMath::GetMappedRangeValueClamped<float, float>(
-				{-500.f, -900.f}, {.5f, 1.5f}, OldVelocity.Z);
+				{-500.f, -900.f}, {.0f, 1.5f}, OldVelocity.Z);
 			PlayAudioEvent(FoleyJumpTag, VolumeMultiplier);
 			break;
 		default:
 			VolumeMultiplier = FMath::GetMappedRangeValueClamped<float, float>(
-				{.0f, 500.f}, {.5f, 1.f}, OldVelocity.Size2D());
+				{.0f, 500.f}, {.0f, 1.f}, OldVelocity.Size2D());
 			PlayAudioEvent(FoleyLandTag, VolumeMultiplier);
 			break;
 		}
 	}
 	PreviousMovementMode = MovementMode;
+}
+
+FTraversalResult AGASPCharacter::TryTraversalAction()
+{
+	if (IsValid(TraversalComponent))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("try traversal"))
+		return TraversalComponent->TryTraversalAction(GetTraversalCheckInputs());
+	}
+	UE_LOG(LogTemp, Warning, TEXT("traversal is not valid"))
+	return FTraversalResult{true};
+}
+
+bool AGASPCharacter::IsDoingTraversal() const
+{
+	return IsValid(TraversalComponent) && TraversalComponent->IsDoingTraversal();
+}
+
+FTraversalCheckInputs AGASPCharacter::GetTraversalCheckInputs() const
+{
+	const FVector ForwardVector{GetActorForwardVector()};
+	if (const EMovementMode CMovementMode = MovementComponent->MovementMode; CMovementMode == MOVE_Falling ||
+		CMovementMode == MOVE_Flying)
+	{
+		return {
+			ForwardVector, 75.f, FVector::ZeroVector,
+			{0.f, 0.f, 50.f}, 30.f, 86.f
+		};
+	}
+
+	const FVector RotationVector = GetActorRotation().UnrotateVector(MovementComponent->Velocity);
+	const float ClampedDistance = FMath::GetMappedRangeValueClamped<float, float>(
+		{0.f, 500.f}, {75.f, 350.f}, RotationVector.X);
+
+	return {
+		ForwardVector, ClampedDistance, FVector::ZeroVector,
+		FVector::ZeroVector, 30.f, 60.f
+	};
 }

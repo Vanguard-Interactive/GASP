@@ -5,24 +5,20 @@
 #include "CoreMinimal.h"
 #include "EnumTypes.generated.h"
 
-USTRUCT(BlueprintType)
-struct GASP_API FStructEnumLibrary
+/* Returns the enumeration index as number. */
+template <typename T>
+static FORCEINLINE int32 GetIndexByValue(const T InValue)
 {
-	GENERATED_BODY()
+	return StaticEnum<T>()->GetIndexByValue(static_cast<int32>(InValue));
+}
 
-	template <typename T>
-	static FORCEINLINE int32 GetIndexByValue(const T InValue)
-	{
-		return StaticEnum<T>()->GetIndexByValue(static_cast<int64>(InValue));
-	}
+/* Returns the enumeration value as string. */
+template <typename T>
+static FORCEINLINE FString GetNameStringByValue(const T InValue)
+{
+	return StaticEnum<T>()->GetNameStringByValue(static_cast<int32>(InValue));
+}
 
-	/* Returns the enumeration value as string. */
-	template <typename T>
-	static FORCEINLINE FString GetNameStringByValue(const T InValue)
-	{
-		return StaticEnum<T>()->GetNameStringByValue(static_cast<int64>(InValue));
-	}
-};
 
 /**
  * Movement gait
@@ -44,33 +40,6 @@ enum class ERotationMode : uint8
 	OrientToMovement,
 	Strafe,
 	Aim
-};
-
-UENUM(BlueprintType, meta = (ScriptName = "EOverlayState"))
-enum class EOverlayState : uint8
-{
-	Default,
-	Masculine,
-	Feminine,
-	Injured,
-	HandsTied,
-	Rifle,
-	PistolOneHanded,
-	PistolTwoHanded,
-	Bow,
-	Torch,
-	Binoculars,
-	Box,
-	Barrel,
-	GreatSword,
-	Katana,
-};
-
-UENUM(BlueprintType, meta = (ScriptName = "ELocomotionAction"))
-enum class ELocomotionAction : uint8
-{
-	None,
-	Ragdoll
 };
 
 /**
@@ -162,4 +131,20 @@ enum class ETraversalBlendOutCondition : uint8
 	ForceBlendOut UMETA(DisplayName = "Force Blend Out"),
 	WithMovementInput UMETA(DisplayName = "With Movement Input"),
 	IfFalling UMETA(DisplayName = "If Falling")
+};
+
+UENUM(BlueprintType, meta = (ScriptName = "ECameraMode"))
+enum class ECameraMode : uint8
+{
+	FreeCam,
+	ArmRight,
+	ArmLeft
+};
+
+UENUM(BlueprintType, meta = (ScriptName = "ECameraStyle"))
+enum class ECameraStyle : uint8
+{
+	Far,
+	Balanced,
+	Close
 };

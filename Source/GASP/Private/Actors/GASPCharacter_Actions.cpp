@@ -14,7 +14,7 @@ UAnimMontage* AGASPCharacter::SelectGetUpMontage(bool bRagdollFacingUpward)
 
 bool AGASPCharacter::IsRagdollingAllowedToStart() const
 {
-	return LocomotionAction != ELocomotionAction::Ragdoll && GetMesh()->GetBodyInstance(NAME_pelvis) != nullptr &&
+	return LocomotionAction != LocomotionActionTags::Ragdoll && GetMesh()->GetBodyInstance(NAME_pelvis) != nullptr &&
 		GetMesh()->GetBodyInstance(NAME_spine_03) != nullptr && *NAME_pelvis.ToString() && *NAME_spine_03.ToString();
 }
 
@@ -108,9 +108,7 @@ void AGASPCharacter::StartRagdollingImplementation()
 	{
 		// Limit the ragdoll's speed for a few frames, because for some unclear reason,
 		// it can get a much higher initial speed than the character's last speed.
-
-		// TODO Find a better solution or wait for a fix in future engine versions.
-
+		
 		static constexpr auto MinSpeedLimit{200.0f};
 
 		RagdollingState.SpeedLimitFrameTimeRemaining = 8;
@@ -133,7 +131,7 @@ void AGASPCharacter::StartRagdollingImplementation()
 
 	MovementComponent->SetMovementMode(MOVE_None);
 
-	SetLocomotionAction(ELocomotionAction::Ragdoll);
+	SetLocomotionAction(LocomotionActionTags::Ragdoll);
 }
 
 void AGASPCharacter::SetRagdollTargetLocation(const FVector& NewTargetLocation)
@@ -158,7 +156,7 @@ void AGASPCharacter::ServerSetRagdollTargetLocation_Implementation(const FVector
 
 void AGASPCharacter::RefreshRagdolling(const float DeltaTime)
 {
-	if (LocomotionAction != ELocomotionAction::Ragdoll)
+	if (LocomotionAction != LocomotionActionTags::Ragdoll)
 	{
 		return;
 	}
@@ -264,7 +262,6 @@ FVector AGASPCharacter::RagdollTraceGround(bool& bGrounded) const
 
 	// We use a sphere sweep instead of a simple line trace to keep capsule
 	// movement consistent between ragdolling and regular character movement.
-
 	const auto CapsuleRadius{GetCapsuleComponent()->GetScaledCapsuleRadius()};
 	const auto CapsuleHalfHeight{GetCapsuleComponent()->GetScaledCapsuleHalfHeight()};
 
@@ -281,10 +278,6 @@ FVector AGASPCharacter::RagdollTraceGround(bool& bGrounded) const
 	bGrounded = GetWorld()->SweepSingleByChannel(Hit, TraceStart, TraceEnd, FQuat::Identity,
 	                                             CollisionChannel, FCollisionShape::MakeSphere(CapsuleRadius),
 	                                             QueryParameters, CollisionResponses);
-
-	// #if WITH_EDITOR
-	// 	DrawDebugLine(GetWorld(), TraceStart, TraceEnd, FColor::Red, false, 10.f);
-	// #endif
 
 	return FVector{
 		RagdollLocation.X, RagdollLocation.Y,
@@ -321,9 +314,8 @@ void AGASPCharacter::ConstraintRagdollSpeed() const
 
 bool AGASPCharacter::IsRagdollingAllowedToStop() const
 {
-	return LocomotionAction == ELocomotionAction::Ragdoll;
-	// && GetMesh()->GetBodyInstance(NAME_pelvis) != nullptr &&
-	//    GetMesh()->GetBodyInstance(NAME_spine_03) != nullptr && *NAME_pelvis.ToString() && *NAME_spine_03.ToString()
+	return LocomotionAction == LocomotionActionTags::Ragdoll && GetMesh()->GetBodyInstance(NAME_pelvis) != nullptr &&
+		GetMesh()->GetBodyInstance(NAME_spine_03) != nullptr && *NAME_pelvis.ToString() && *NAME_spine_03.ToString();
 }
 
 bool AGASPCharacter::StopRagdolling()
@@ -446,6 +438,6 @@ void AGASPCharacter::StopRagdollingImplementation()
 
 	if (bGrounded && GetMesh()->GetAnimInstance()->Montage_Play(SelectGetUpMontage(bRagdollFacingUpward)) > 0.0f)
 	{
-		SetLocomotionAction(ELocomotionAction::None);
+		SetLocomotionAction(LocomotionActionTags::None);
 	}
 }

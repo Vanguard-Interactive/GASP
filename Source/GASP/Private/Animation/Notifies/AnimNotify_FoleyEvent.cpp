@@ -4,24 +4,27 @@
 #include "Animation/Notifies//AnimNotify_FoleyEvent.h"
 
 #include "BlueprintGameplayTagLibrary.h"
-#include "Interfaces/FoleyAudioBankInterface.h"
+#include "Interfaces/GASPFoleyAudioBankInterface.h"
 #include "Kismet/GameplayStatics.h"
+#include "Types/GameplayTags.h"
+
+#include UE_INLINE_GENERATED_CPP_BY_NAME(AnimNotify_FoleyEvent)
 
 UAnimNotify_FoleyEvent::UAnimNotify_FoleyEvent()
 {
 	const TArray<FGameplayTag> MovementTagsList = {
-		FGameplayTag::RequestGameplayTag(TEXT("Foley.Event.Run")),
-		FGameplayTag::RequestGameplayTag(TEXT("Foley.Event.RunBackwds")),
-		FGameplayTag::RequestGameplayTag(TEXT("Foley.Event.RunStrafe")),
-		FGameplayTag::RequestGameplayTag(TEXT("Foley.Event.Scuff")),
-		FGameplayTag::RequestGameplayTag(TEXT("Foley.Event.ScuffPivot")),
-		FGameplayTag::RequestGameplayTag(TEXT("Foley.Event.Walks")),
-		FGameplayTag::RequestGameplayTag(TEXT("Foley.Event.WalkBackwds"))
+		FoleyTags::Run,
+		FoleyTags::RunBackwds,
+		FoleyTags::RunStrafe,
+		FoleyTags::Scuff,
+		FoleyTags::ScuffPivot,
+		FoleyTags::Walk,
+		FoleyTags::WalkBackwds
 	};
 
 	const TArray<FGameplayTag> ActionTagsList = {
-		FGameplayTag::RequestGameplayTag(TEXT("Foley.Event.Jump")),
-		FGameplayTag::RequestGameplayTag(TEXT("Foley.Event.Land"))
+		FoleyTags::Jump,
+		FoleyTags::Land
 	};
 
 	MovementTags = FGameplayTagContainer::CreateFromArray(MovementTagsList);
@@ -45,6 +48,21 @@ void UAnimNotify_FoleyEvent::Notify(USkeletalMeshComponent* MeshComp, UAnimSeque
 	}
 
 	const UWorld* WorldContext = Owner->GetWorld();
+
+	FName SocketName{Side == EFoleyEventSide::Left ? TEXT("foot_l") : TEXT("foot_r")};
+
+	FHitResult Hit;
+	const FVector SocketLocation = MeshComp->GetSocketLocation(SocketName);
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(Owner);
+
+	WorldContext->LineTraceSingleByChannel(Hit, SocketLocation, SocketLocation - FVector::ZAxisVector * TraceLength,
+	                                       ECC_Visibility, QueryParams);
+	if (!Hit.bBlockingHit)
+	{
+		return;
+	}
+
 	UGameplayStatics::PlaySoundAtLocation(WorldContext, DefaultBank->GetSoundFromEvent(Event),
 	                                      MeshComp->GetComponentLocation(),
 	                                      VolumeMultiplier, PitchMultiplier);
@@ -63,8 +81,7 @@ void UAnimNotify_FoleyEvent::Notify(USkeletalMeshComponent* MeshComp, UAnimSeque
 
 	const FVector SphereCenter = Side == EFoleyEventSide::None
 		                             ? MeshComp->GetComponentLocation()
-		                             : MeshComp->GetSocketLocation(
-			                             Side == EFoleyEventSide::Left ? TEXT("foot_l") : TEXT("foot_r"));
+		                             : SocketLocation;
 
 	// UVisualLoggerKismetLibrary::LogSphere(WorldContext, SphereCenter, 5.f, VisLogDebugText, VisLogDebugColor,
 	//                                       FName(TEXT("VisLogFoley")));
@@ -95,14 +112,17 @@ bool UAnimNotify_FoleyEvent::GetFoleyAudioBank(const USkeletalMeshComponent* Mes
 		return false;
 	}
 
-	IFoleyAudioBankInterface* Interface = Cast<IFoleyAudioBankInterface>(Owner);
+	IGASPFoleyAudioBankInterface* Interface = Cast<IGASPFoleyAudioBankInterface>(Owner);
 	if (!Interface)
 	{
 		return false;
 	}
 
-	UFoleyAudioBankPrimaryDataAsset* FoleyBank = Interface->GetFoleyAudioBank();
-	DefaultBank = IsValid(FoleyBank) ? TObjectPtr<UFoleyAudioBankPrimaryDataAsset>(FoleyBank) : DefaultBank;
+	UGASPFoleyAudioBankPrimaryDataAsset* FoleyBank = Interface->GetFoleyAudioBank();
+	if (IsValid(FoleyBank))
+	{
+		DefaultBank = TObjectPtr<UGASPFoleyAudioBankPrimaryDataAsset>(FoleyBank);
+	}
 
 	if (MovementTags.HasTag(Event))
 	{

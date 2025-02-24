@@ -8,19 +8,34 @@ public class GASP : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Latest;
-
 		bEnableNonInlinedGenCppWarnings = true;
 
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
-			"CoreUObject", "Core", "Engine", "UMG", "NetCore",
-			"GameplayTags", "GameplayDebugger"
+			"Core",
+			"CoreUObject",
+			"Engine",
+			"NetCore",
+			"GameplayTags",
+			"MotionWarping"
 		});
+
 
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
-			"MotionTrajectory", "PoseSearch", "Chooser",
-			"AnimationWarpingRuntime", "BlendStack", "PhysicsCore", "AnimationBlueprintLibrary"
+			"MotionTrajectory",
+			"PoseSearch",
+			"Chooser",
+			"AnimationWarpingRuntime",
+			"BlendStack",
+			"PhysicsCore",
+			"AnimGraphRuntime"
 		});
+
+		if (Target.Type == TargetRules.TargetType.Editor)
+			PrivateDependencyModuleNames.AddRange(new string[]
+			{
+				"GameplayDebugger"
+			});
 	}
 }
