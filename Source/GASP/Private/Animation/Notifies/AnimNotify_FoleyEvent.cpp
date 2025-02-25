@@ -2,13 +2,17 @@
 
 
 #include "Animation/Notifies//AnimNotify_FoleyEvent.h"
-
 #include "BlueprintGameplayTagLibrary.h"
 #include "Interfaces/GASPFoleyAudioBankInterface.h"
 #include "Kismet/GameplayStatics.h"
 #include "Types/GameplayTags.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(AnimNotify_FoleyEvent)
+
+#if WITH_EDITOR && ALLOW_CONSOLE
+static IConsoleVariable* DrawDebug = IConsoleManager::Get().FindConsoleVariable(
+	TEXT("DDCvar.DrawVisLogShapesForFoleySounds"));
+#endif
 
 UAnimNotify_FoleyEvent::UAnimNotify_FoleyEvent()
 {
@@ -68,7 +72,7 @@ void UAnimNotify_FoleyEvent::Notify(USkeletalMeshComponent* MeshComp, UAnimSeque
 	                                      VolumeMultiplier, PitchMultiplier);
 
 #if WITH_EDITOR && ALLOW_CONSOLE
-	const auto DrawDebug = IConsoleManager::Get().FindConsoleVariable(TEXT("DDCvar.DrawVisLogShapesForFoleySounds"));
+
 	if (!DrawDebug)
 	{
 		return;

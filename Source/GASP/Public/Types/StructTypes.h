@@ -604,7 +604,7 @@ struct GASP_API FTraversalCheckResult
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Traversal")
-	FGameplayTagContainer ActionType{LocomotionActionTags::None};
+	FGameplayTag ActionType{LocomotionActionTags::None};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Traversal")
 	uint8 bHasFrontLedge : 1{false};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Traversal")

@@ -14,6 +14,16 @@ void AGASPCharacterExample::PossessedBy(AController* NewController)
 	}
 }
 
+void AGASPCharacterExample::OnRep_Controller()
+{
+	Super::OnRep_Controller();
+
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		GameplayCamera->ActivateCameraForPlayerController(PC);
+	}
+}
+
 // Sets default values
 AGASPCharacterExample::AGASPCharacterExample(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

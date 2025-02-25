@@ -16,6 +16,7 @@ class GASPEXTRAS_API AGASPCharacterExample : public AGASPCharacter
 
 protected:
 	virtual void PossessedBy(AController* NewController) override;
+	virtual void OnRep_Controller() override;
 
 public:
 	// Sets default values for this character's properties

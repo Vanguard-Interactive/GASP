@@ -13,6 +13,7 @@
 #include "MotionWarpingComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "PlayMontageCallbackProxy.h"
+#include "Engine/AssetManager.h"
 #include "PoseSearch/PoseSearchLibrary.h"
 #include "PoseSearch/PoseSearchResult.h"
 
@@ -23,6 +24,14 @@ static FName NAME_BackLedge{TEXT("BackLedge")};
 static FName NAME_BackFloor{TEXT("BackFloor")};
 static FName NAME_DistanceFromLedge{TEXT("Distance_From_Ledge")};
 static FName NAME_PoseHistory = TEXT("PoseHistory");
+
+#if WITH_EDITOR && ALLOW_CONSOLE
+static IConsoleVariable* DrawDebugLevelVar = IConsoleManager::Get().FindConsoleVariable(
+	TEXT("DDCvar.Traversal.DrawDebugLevel"));
+static IConsoleVariable* DrawDebugDurationVar = IConsoleManager::Get().FindConsoleVariable(
+	TEXT("DDCvar.Traversal.DrawDebugDuration"));
+#endif
+
 
 // Sets default values for this component's properties
 UGASPTraversalComponent::UGASPTraversalComponent()
@@ -91,8 +100,8 @@ void UGASPTraversalComponent::UpdateWarpTargets()
 		FRotationMatrix::MakeFromX(-TraversalCheckResult.FrontLedgeNormal).Rotator()
 	);
 
-	if (TraversalCheckResult.ActionType.HasTag(LocomotionActionTags::Hurdle) || TraversalCheckResult.ActionType.HasTag(
-		LocomotionActionTags::Vault))
+	if (TraversalCheckResult.ActionType == LocomotionActionTags::Hurdle || TraversalCheckResult.ActionType ==
+		LocomotionActionTags::Vault)
 	{
 		ProccessHurdle(NAME_DistanceFromLedge, NAME_BackLedge, DistanceFromFrontLedgeToBackLedge);
 		MotionWarpingComponent->AddOrUpdateWarpTargetFromLocationAndRotation(
@@ -103,7 +112,7 @@ void UGASPTraversalComponent::UpdateWarpTargets()
 		MotionWarpingComponent->RemoveWarpTarget(NAME_BackLedge);
 	}
 
-	if (TraversalCheckResult.ActionType.HasTag(LocomotionActionTags::Hurdle))
+	if (TraversalCheckResult.ActionType == LocomotionActionTags::Hurdle)
 	{
 		float DistanceFromFrontLedgeToBackFloor{0.f};
 		ProccessHurdle(NAME_DistanceFromLedge, NAME_BackFloor, DistanceFromFrontLedgeToBackFloor);
@@ -125,11 +134,9 @@ void UGASPTraversalComponent::UpdateWarpTargets()
 
 FTraversalResult UGASPTraversalComponent::TryTraversalAction(FTraversalCheckInputs CheckInputs)
 {
-	FTraversalResult TraversalResult;
 	if (!CharacterOwner.IsValid())
 	{
-		TraversalResult.bTraversalCheckFailed = true;
-		return TraversalResult;
+		return {true, false};
 	}
 
 	auto FloatInRange = [this](const float Value, const float MinValue, const float MaxValue)
@@ -144,10 +151,7 @@ FTraversalResult UGASPTraversalComponent::TryTraversalAction(FTraversalCheckInpu
 	const float& CapsuleHalfHeight = CapsuleComponent.IsValid() ? CapsuleComponent->GetScaledCapsuleHalfHeight() : 60.f;
 
 #if WITH_EDITOR && ALLOW_CONSOLE
-	const auto& DrawDebugLevelVar = IConsoleManager::Get().FindConsoleVariable(TEXT("DDCvar.Traversal.DrawDebugLevel"));
 	const int32& DrawDebugLevel = DrawDebugLevelVar ? DrawDebugLevelVar->GetInt() : 0;
-	const auto& DrawDebugDurationVar = IConsoleManager::Get().FindConsoleVariable(
-		TEXT("DDCvar.Traversal.DrawDebugDuration"));
 	const float& DrawDebugDuration = DrawDebugDurationVar ? DrawDebugDurationVar->GetFloat() : 0;
 #endif
 
@@ -155,13 +159,7 @@ FTraversalResult UGASPTraversalComponent::TryTraversalAction(FTraversalCheckInpu
 
 	// Step 2.1: Perform a trace in the actor's forward direction to find a Traversable Level Block. If found, set the Hit Component, if not, exit the function.
 	FHitResult Hit;
-
-	TArray<AActor*> IgnoredActors;
-	CharacterOwner->GetAllChildActors(IgnoredActors);
-
-	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(CharacterOwner.Get());
-	QueryParams.AddIgnoredActors(IgnoredActors);
+	FCollisionQueryParams QueryParams{GetQueryParams()};
 
 	UWorld* World = CharacterOwner->GetWorld();
 	FVector StartLocation = ActorLocation + CheckInputs.TraceOriginOffset;
@@ -192,9 +190,7 @@ FTraversalResult UGASPTraversalComponent::TryTraversalAction(FTraversalCheckInpu
 	if (!Hit.bBlockingHit || (Obstacle == nullptr && (!Hit.GetActor() || !(Hit.GetActor() && Hit.GetActor()->Implements<
 		UGASPTraversableObstacleInterface>()))))
 	{
-		TraversalResult.bTraversalCheckFailed = true;
-		TraversalResult.bMontageSelectionFailed = false;
-		return TraversalResult;
+		return {true, false};
 	}
 
 	NewTraversalCheckResult.HitComponent = Hit.GetComponent();
@@ -233,9 +229,7 @@ FTraversalResult UGASPTraversalComponent::TryTraversalAction(FTraversalCheckInpu
 	// Step 3.1 If the traversable level block has a valid front ledge, continue the function. If not, exit early.
 	if (!NewTraversalCheckResult.bHasFrontLedge)
 	{
-		TraversalResult.bTraversalCheckFailed = true;
-		TraversalResult.bMontageSelectionFailed = false;
-		return TraversalResult;
+		return {true, false};
 	}
 
 	/** Step 3.2: Perform a trace from the actors location up to the front ledge location to determine if there is
@@ -259,9 +253,7 @@ FTraversalResult UGASPTraversalComponent::TryTraversalAction(FTraversalCheckInpu
 	if (Hit.bBlockingHit || Hit.bStartPenetrating)
 	{
 		NewTraversalCheckResult.bHasFrontLedge = false;
-		TraversalResult.bTraversalCheckFailed = true;
-		TraversalResult.bMontageSelectionFailed = false;
-		return TraversalResult;
+		return {true, false};
 	}
 
 	// Step 3.3: save the height of the obstacle using the delta between the actor and front ledge transform.
@@ -335,7 +327,7 @@ FTraversalResult UGASPTraversalComponent::TryTraversalAction(FTraversalCheckInpu
 		}
 	}
 
-
+	UChooserTable* ChooserTable{TraversalAnimationsChooserTable.LoadSynchronous()};
 	// Step 5.3: Evaluate a chooser to select all montages that match the conditions of the traversal check.
 	FTraversalChooserInput ChooserParameters;
 	ChooserParameters.ActionType = NewTraversalCheckResult.ActionType;
@@ -354,36 +346,29 @@ FTraversalResult UGASPTraversalComponent::TryTraversalAction(FTraversalCheckInpu
 	Context.AddStructParam(ChooserParameters);
 	Context.AddStructParam(ChooserOutput);
 	TArray<UObject*> AnimationAssets{
-		UChooserFunctionLibrary::EvaluateObjectChooserBaseMulti(Context,
-		                                                        UChooserFunctionLibrary::MakeEvaluateChooser(
-			                                                        TraversalAnimationsChooserTable.LoadSynchronous()),
-		                                                        UAnimMontage::StaticClass())
+		UChooserFunctionLibrary::EvaluateObjectChooserBaseMulti(
+			Context, UChooserFunctionLibrary::MakeEvaluateChooser(ChooserTable), UAnimMontage::StaticClass())
 	};
 	NewTraversalCheckResult.ActionType = ChooserOutput.ActionType;
 
 	/* Step 5.1: Continue if there is a valid action type. If none of the conditions were met, no action can be
 	 * performed, therefore exit the function. */
-	if (NewTraversalCheckResult.ActionType.HasTag(LocomotionActionTags::None))
+	if (NewTraversalCheckResult.ActionType == LocomotionActionTags::None)
 	{
-		TraversalResult.bTraversalCheckFailed = true;
-		TraversalResult.bMontageSelectionFailed = false;
-		return TraversalResult;
+		return {true, false};
 	}
 
 	/** Step 5.2: Send the front ledge location to the Anim BP using an interface. This transform will be used for a
 	 * custom channel within the following Motion Matching search. */
 	if (!AnimInstance.IsValid())
 	{
-		TraversalResult.bTraversalCheckFailed = true;
-		return TraversalResult;
+		return {true, false};
 	}
 	IGASPInteractionTransformInterface* InteractableObject =
 		Cast<IGASPInteractionTransformInterface>(AnimInstance);
 	if (InteractableObject == nullptr && !AnimInstance->Implements<UGASPInteractionTransformInterface>())
 	{
-		TraversalResult.bTraversalCheckFailed = true;
-		TraversalResult.bMontageSelectionFailed = false;
-		return TraversalResult;
+		return {true, false};
 	}
 
 	const FTransform InteractionTransform =
@@ -412,9 +397,7 @@ FTraversalResult UGASPTraversalComponent::TryTraversalAction(FTraversalCheckInpu
 		GEngine->AddOnScreenDebugMessage(NULL, DrawDebugDuration, FColor::Red,
 		                                 FString::Printf(TEXT("Failed To Find Montage!")));
 #endif
-		TraversalResult.bTraversalCheckFailed = false;
-		TraversalResult.bMontageSelectionFailed = true;
-		return TraversalResult;
+		return {true, false};
 	}
 	NewTraversalCheckResult.ChosenMontage = AnimationMontage;
 	NewTraversalCheckResult.StartTime = Result.SelectedTime;
@@ -456,11 +439,8 @@ void UGASPTraversalComponent::Traversal_ServerImplementation(const FTraversalChe
 
 void UGASPTraversalComponent::OnTraversalStart()
 {
-	if (MovementComponent.IsValid())
-	{
-		MovementComponent->bIgnoreClientMovementErrorChecksAndCorrection = true;
-		MovementComponent->bServerAcceptClientAuthoritativePosition = true;
-	}
+	MovementComponent->bIgnoreClientMovementErrorChecksAndCorrection = true;
+	MovementComponent->bServerAcceptClientAuthoritativePosition = true;
 }
 
 void UGASPTraversalComponent::OnRep_TraversalResult()
@@ -480,14 +460,13 @@ void UGASPTraversalComponent::OnCompleteTraversal(FName NotifyName)
 	CapsuleComponent->IgnoreComponentWhenMoving(TraversalCheckResult.HitComponent, false);
 
 	const EMovementMode MovementMode{
-		TraversalCheckResult.ActionType.HasTag(LocomotionActionTags::Vault)
+		TraversalCheckResult.ActionType == LocomotionActionTags::Vault
 			? MOVE_Falling
 			: MOVE_Walking
 	};
 	MovementComponent->SetMovementMode(MovementMode);
 
-	FTimerHandle Handle;
-	GetWorld()->GetTimerManager().SetTimer(Handle, [this]()
+	GetWorld()->GetTimerManager().SetTimer(TraversalEndHandle, [this]()
 	{
 		OnTraversalEnd();
 	}, IgnoreCorrectionDelay, false);
@@ -517,4 +496,16 @@ void UGASPTraversalComponent::PerformTraversalAction_Implementation()
 void UGASPTraversalComponent::Server_Traversal_Implementation(FTraversalCheckResult TraversalRep)
 {
 	Traversal_ServerImplementation(TraversalRep);
+}
+
+FCollisionQueryParams UGASPTraversalComponent::GetQueryParams() const
+{
+	TArray<AActor*> IgnoredActors;
+	CharacterOwner->GetAllChildActors(IgnoredActors);
+
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(CharacterOwner.Get());
+	QueryParams.AddIgnoredActors(IgnoredActors);
+
+	return QueryParams;
 }

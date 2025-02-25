@@ -16,6 +16,12 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GASPAnimInstance)
 
+#if ALLOW_CONSOLE
+static IConsoleVariable* OffsetRootEnabledVar = IConsoleManager::Get().FindConsoleVariable(
+	TEXT("a.animnode.offsetrootbone.enable"));
+static IConsoleVariable* MMLodVar = IConsoleManager::Get().FindConsoleVariable(TEXT("DDCvar.MMDatabaseLOD"));
+#endif
+
 void UGASPAnimInstance::OnLanded(const FHitResult& HitResult)
 {
 	bLanded = true;
@@ -175,6 +181,7 @@ void UGASPAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UGASPAnimInstance::NativeUpdateAnimation"),
 	                            STAT_UGASPAnimInstance_NativeUpdateAnimation, STATGROUP_GASP)
 	TRACE_CPUPROFILER_EVENT_SCOPE(__FUNCTION__);
+
 	Super::NativeUpdateAnimation(DeltaSeconds);
 
 	if (!CachedCharacter.IsValid() || !CachedMovement.IsValid())
@@ -201,19 +208,16 @@ void UGASPAnimInstance::PreUpdateAnimation(float DeltaSeconds)
 void UGASPAnimInstance::RefreshCVar()
 {
 	// Get console variables
-	const auto& OffsetRootEnabled = IConsoleManager::Get().FindConsoleVariable(
-		TEXT("a.animnode.offsetrootbone.enable"));
-
-	const auto& MMLod = IConsoleManager::Get().FindConsoleVariable(TEXT("DDCvar.MMDatabaseLOD"));
-
-	if (OffsetRootEnabled)
+#if ALLOW_CONSOLE
+	if (OffsetRootEnabledVar)
 	{
-		OffsetRootBoneEnabled = OffsetRootEnabled->GetBool();
+		OffsetRootBoneEnabled = OffsetRootEnabledVar->GetBool();
 	}
-	if (MMLod)
+	if (MMLodVar)
 	{
-		MMDatabaseLOD = MMLod->GetInt();
+		MMDatabaseLOD = MMLodVar->GetInt();
 	}
+#endif
 }
 
 void UGASPAnimInstance::RefreshTrajectory(const float DeltaSeconds)
@@ -789,7 +793,8 @@ bool UGASPAnimInstance::IsAnimationAlmostComplete()
 {
 	const float CurrentTime = GetInstanceAssetPlayerTime(0);
 	const float Length = GetInstanceAssetPlayerLength(0);
-	return !MotionMatching.bLoop && (Length - CurrentTime) <= 0.75f;
+
+	return !BlendStackInputs.bLoop && (Length - CurrentTime) <= 0.75f;
 }
 
 float UGASPAnimInstance::GetDynamicPlayRate(const FAnimNodeReference& Node) const

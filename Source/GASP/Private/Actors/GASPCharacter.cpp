@@ -460,11 +460,10 @@ FTraversalResult AGASPCharacter::TryTraversalAction()
 {
 	if (IsValid(TraversalComponent))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("try traversal"))
 		return TraversalComponent->TryTraversalAction(GetTraversalCheckInputs());
 	}
-	UE_LOG(LogTemp, Warning, TEXT("traversal is not valid"))
-	return FTraversalResult{true};
+
+	return {true, false};
 }
 
 bool AGASPCharacter::IsDoingTraversal() const

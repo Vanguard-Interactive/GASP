@@ -43,7 +43,7 @@ protected:
 	FGameplayTagContainer MovementTags{};
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AnimNotify")
-	float TraceLength{15.f};
+	float TraceLength{25.f};
 
 public:
 	UAnimNotify_FoleyEvent();

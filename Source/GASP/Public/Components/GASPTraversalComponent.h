@@ -24,7 +24,7 @@ struct GASP_API FTraversalChooserInput
 	GENERATED_BODY()
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Traversal")
-	FGameplayTagContainer ActionType{LocomotionActionTags::None};
+	FGameplayTag ActionType{LocomotionActionTags::None};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Traversal")
 	EGait Gait{EGait::Walk};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Traversal")
@@ -52,7 +52,7 @@ struct GASP_API FTraversalChooserOutput
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FGameplayTagContainer ActionType;
+	FGameplayTag ActionType;
 };
 
 USTRUCT(BlueprintType)
@@ -84,7 +84,7 @@ struct GASP_API FTraversalResult
 	UPROPERTY(BlueprintReadOnly, Category = "Traversal")
 	bool bMontageSelectionFailed{false};
 
-	explicit FTraversalResult(const bool TraversalCheckFailed = false, const bool MontageSelectionFailed = false)
+	FTraversalResult(const bool TraversalCheckFailed = false, const bool MontageSelectionFailed = false)
 	{
 		bTraversalCheckFailed = TraversalCheckFailed;
 		bMontageSelectionFailed = MontageSelectionFailed;
@@ -97,6 +97,9 @@ class GASP_API UGASPTraversalComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
+	UPROPERTY(VisibleAnywhere, Category="Traversal")
+	FTimerHandle TraversalEndHandle;
+
 public:
 	// Sets default values for this component's properties
 	UGASPTraversalComponent();
@@ -105,26 +108,51 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
+	/** 
+	 * Processes motion warping for a hurdle movement
+	 * @param CurveName - Name of the curve to retrieve values from
+	 * @param WarpTarget - The motion warping target name
+	 * @param Value - The retrieved value from the animation curve
+	 */
 	void ProccessHurdle(const FName CurveName, const FName WarpTarget, float& Value) const;
 
+	/** 
+	 * Updates motion warping targets based on traversal results 
+	 */
 	UFUNCTION(BlueprintCallable)
 	void UpdateWarpTargets();
 
-	/** Please add a function description */
+	/** 
+	 * Handles traversal action replication on the server 
+	 * @param TraversalRep - The replicated traversal result data
+	 */
 	UFUNCTION(BlueprintCallable, Category="Traversal")
 	void Traversal_ServerImplementation(const FTraversalCheckResult TraversalRep);
 
-	/** Please add a function description */
+	/** 
+	 * Called when a traversal action starts 
+	 */
 	UFUNCTION(BlueprintCallable, Category="Traversal")
 	void OnTraversalStart();
 
-	/** Please add a function description */
+	/** 
+	 * Replication callback for TraversalCheckResult 
+	 */
 	UFUNCTION(BlueprintCallable, Category = "Traversal")
 	void OnRep_TraversalResult();
 
-	/** Please add a function description */
+	/** 
+	 * Called when a traversal action ends 
+	 */
 	UFUNCTION(BlueprintCallable, Category="Traversal")
 	void OnTraversalEnd() const;
+
+	/** 
+	 * Handles the completion of a traversal action 
+	 * @param NotifyName - The name of the animation notify that triggered the completion event
+	 */
+	UFUNCTION()
+	void OnCompleteTraversal(FName NotifyName);
 
 	/** Please add a variable description */
 	UPROPERTY(BlueprintReadOnly, Category="Traversal", ReplicatedUsing="OnRep_TraversalResult", Transient)
@@ -138,26 +166,43 @@ protected:
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category="Traversal")
 	float IgnoreCorrectionDelay{.2f};
 
+	/** Please add a variable description */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Traversal")
 	TSoftObjectPtr<class UChooserTable> TraversalAnimationsChooserTable;
 
-	UFUNCTION()
-	void OnCompleteTraversal(FName NotifyName);
-
 public:
-	/** Please add a function description */
-	UFUNCTION(BlueprintCallable, Category = "Traversal")
+	/** 
+	* Returns a pre-configured collision query for traversal traces 
+	* @return Configured collision query parameters 
+	*/
+	FCollisionQueryParams GetQueryParams() const;
+
+	/** 
+	 * Performs a traversal action check and returns the result 
+	 * @param CheckInputs - The inputs required to perform the traversal check
+	 * @return The result of the traversal check
+	 */
+	UFUNCTION(BlueprintCallable, Category="Traversal")
 	FTraversalResult TryTraversalAction(FTraversalCheckInputs CheckInputs);
 
-	/** Please add a function description */
+
+	/** 
+	 * Executes the traversal action (native event for blueprint extension) 
+	 */
 	UFUNCTION(BlueprintNativeEvent, Category="Traversal")
 	void PerformTraversalAction();
 
-	/** Please add a function description */
+	/** 
+	 * Handles traversal execution on the server 
+	 * @param TraversalRep - The traversal result data to be replicated
+	 */
 	UFUNCTION(Reliable, Server, Category="Traversal")
 	void Server_Traversal(FTraversalCheckResult TraversalRep);
 
-	/** Please add a function description */
+	/** 
+	 * Checks whether the character is currently performing a traversal action 
+	 * @return True if the character is in a traversal action, otherwise false
+	 */
 	UFUNCTION(BlueprintPure, Category="Traversal")
 	bool IsDoingTraversal() const;
 
