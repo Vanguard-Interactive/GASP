@@ -25,6 +25,11 @@
       "Name": "GASPExtras",
       "Type": "Runtime",
       "LoadingPhase": "Default"
+    },
+    {
+      "Name": "GASPEditor",
+      "Type": "UncookedOnly",
+      "LoadingPhase": "PreDefault"
     }
   ],
   "Plugins": [

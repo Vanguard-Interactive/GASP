@@ -37,24 +37,24 @@ protected:
 	/******************
 	 * Character state *
 	 ******************/
-	UPROPERTY(VisibleAnywhere, Category = "CharacterInformation|General", BlueprintReadOnly, Transient)
+	UPROPERTY(EditAnywhere, Category = "CharacterInformation|General", BlueprintReadOnly, Transient)
 	FAnimCurves AnimNames{};
 
 	UPROPERTY(VisibleAnywhere, Category = "CharacterInformation|General", BlueprintReadOnly, Transient)
 	EMovementDirection MovementDirection{EMovementDirection::F};
 	UPROPERTY(VisibleAnywhere, Category = "LocomotionAction", BlueprintReadOnly, Transient)
-	FGameplayTag LocomotionAction{LocomotionActionTags::None};
+	FGameplayTag LocomotionAction{FGameplayTag::EmptyTag};
 
 	UPROPERTY(VisibleAnywhere, Category = "CharacterInfromation|States", BlueprintReadOnly, Transient)
-	FGait Gait{};
+	EGait Gait{};
 	UPROPERTY(VisibleAnywhere, Category = "CharacterInfromation|States", BlueprintReadOnly, Transient)
-	FStanceMode StanceMode{};
+	EStanceMode StanceMode{};
 	UPROPERTY(VisibleAnywhere, Category = "CharacterInfromation|States", BlueprintReadOnly, Transient)
-	FMovementState MovementState{};
+	EMovementState MovementState{};
 	UPROPERTY(VisibleAnywhere, Category = "CharacterInfromation|States", BlueprintReadOnly, Transient)
-	FRotationMode RotationMode{};
+	ERotationMode RotationMode{};
 	UPROPERTY(VisibleAnywhere, Category = "CharacterInfromation|States", BlueprintReadOnly, Transient)
-	FMovementMode MovementMode{};
+	ECMovementMode MovementMode{};
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|General", Transient)
 	FCharacterInfo CharacterInfo{};
@@ -63,22 +63,22 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|General", Transient)
 	FMovementDirectionThreshold MovementDirectionThreshold;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MotionMatching", Transient)
-	FMotionMatchingInfo MotionMatching;
+	FMotionMatchingInfo BlendStack;
 	UPROPERTY(VisibleAnywhere, Category = "LocomotionAction|Information", BlueprintReadOnly, Transient)
 	FRagdollingAnimationState RagdollingState;
 	UPROPERTY(VisibleAnywhere, Category = "Additive|Poses", BlueprintReadOnly, Transient)
 	FGASPBlendPoses BlendPoses;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
-	FStanceMode PreviousStanceMode;
+	EStanceMode PreviousStanceMode;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
-	FGait PreviousGait;
+	EGait PreviousGait;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
-	FMovementState PreviousMovementState;
+	EMovementState PreviousMovementState;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
-	FRotationMode PreviousRotationMode;
+	ERotationMode PreviousRotationMode;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
-	FMovementMode PreviousMovementMode;
+	ECMovementMode PreviousMovementMode;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
 	FCharacterInfo PreviousCharacterInfo;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
@@ -87,27 +87,27 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient)
 	FGameplayTagContainer OverlayMode{OverlayModeTags::Default};
 
-	UPROPERTY(VisibleAnywhere, Category="PoseSearchData|Choosers", BlueprintReadWrite, Transient)
+	UPROPERTY(EditAnywhere, Category="PoseSearchData|Choosers", BlueprintReadOnly)
 	TSoftObjectPtr<class UChooserTable> LocomotionTable{};
-	UPROPERTY(VisibleAnywhere, Category="PoseSearchData|Choosers", BlueprintReadWrite, Transient)
+	UPROPERTY(EditAnywhere, Category="PoseSearchData|Choosers", BlueprintReadOnly)
 	TSoftObjectPtr<UChooserTable> OverlayTable{};
-	UPROPERTY(VisibleAnywhere, Category="PoseSearchData|Choosers", BlueprintReadWrite, Transient)
+	UPROPERTY(EditAnywhere, Category="PoseSearchData|Choosers", BlueprintReadOnly)
 	TSoftObjectPtr<UChooserTable> StateMachineTable{};
 
-	UPROPERTY(VisibleAnywhere, Category="PoseSearchData|Trajectory", BlueprintReadWrite, Transient)
+	UPROPERTY(EditAnywhere, Category="PoseSearchData|Trajectory", BlueprintReadOnly, Transient)
 	FPoseSearchQueryTrajectory Trajectory{};
-	UPROPERTY(VisibleAnywhere, Category="PoseSearchData|Trajectory", BlueprintReadWrite, Transient)
+	UPROPERTY(EditAnywhere, Category="PoseSearchData|Trajectory", BlueprintReadOnly, Transient)
 	FPoseSearchTrajectoryData TrajectoryGenerationData_Idle{};
-	UPROPERTY(VisibleAnywhere, Category="PoseSearchData|Trajectory", BlueprintReadWrite, Transient)
+	UPROPERTY(EditAnywhere, Category="PoseSearchData|Trajectory", BlueprintReadOnly, Transient)
 	FPoseSearchTrajectoryData TrajectoryGenerationData_Moving{};
 
-	UPROPERTY(VisibleAnywhere, Category="Movement|FootPlacement", BlueprintReadOnly, Transient)
+	UPROPERTY(EditAnywhere, Category="Movement|FootPlacement", BlueprintReadOnly, Transient)
 	FFootPlacementPlantSettings PlantSettings_Default{};
-	UPROPERTY(VisibleAnywhere, Category="Movement|FootPlacement", BlueprintReadOnly, Transient)
+	UPROPERTY(EditAnywhere, Category="Movement|FootPlacement", BlueprintReadOnly, Transient)
 	FFootPlacementPlantSettings PlantSettings_Stops{};
-	UPROPERTY(VisibleAnywhere, Category="Movement|FootPlacement", BlueprintReadOnly, Transient)
+	UPROPERTY(EditAnywhere, Category="Movement|FootPlacement", BlueprintReadOnly, Transient)
 	FFootPlacementInterpolationSettings InterpolationSettings_Default{};
-	UPROPERTY(VisibleAnywhere, Category="Movement|FootPlacement", BlueprintReadOnly, Transient)
+	UPROPERTY(EditAnywhere, Category="Movement|FootPlacement", BlueprintReadOnly, Transient)
 	FFootPlacementInterpolationSettings InterpolationSettings_Stops{};
 	UPROPERTY(VisibleAnywhere, Category="Additive", BlueprintReadOnly, Transient)
 	FRotator SpineRotation{FRotator::ZeroRotator};
@@ -115,8 +115,10 @@ protected:
 public:
 	UFUNCTION(BlueprintPure, Category="Movement|Analys", meta = (BlueprintThreadSafe))
 	bool IsStarting() const;
-	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
+	UFUNCTION(BlueprintPure, Category="Movement|Analys", meta = (BlueprintThreadSafe))
 	bool IsPivoting() const;
+	UFUNCTION(BlueprintPure, Category="Movement|Analys", meta = (BlueprintThreadSafe))
+	bool IsMoving() const;
 	UFUNCTION(BlueprintPure, Category="Movement|Analys", meta = (BlueprintThreadSafe))
 	bool ShouldTurnInPlace() const;
 	UFUNCTION(BlueprintPure, Category="Movement|Analys", meta = (BlueprintThreadSafe))
@@ -244,19 +246,19 @@ public:
 	FORCEINLINE FCharacterInfo GetCharacterInfo() const { return CharacterInfo; }
 
 	UFUNCTION(BlueprintGetter, Category = "Movement|Analys", meta = (BlueprintThreadSafe))
-	FORCEINLINE FGait GetGait() const { return Gait; }
+	FORCEINLINE EGait GetGait() const { return Gait; }
 
 	UFUNCTION(BlueprintGetter, Category = "Movement|Analys", meta = (BlueprintThreadSafe))
-	FORCEINLINE FStanceMode GetStanceMode() const { return StanceMode; }
+	FORCEINLINE EStanceMode GetStanceMode() const { return StanceMode; }
 
 	UFUNCTION(BlueprintGetter, Category = "Movement|Analys", meta = (BlueprintThreadSafe))
-	FORCEINLINE FMovementState GetMovementState() const { return MovementState; }
+	FORCEINLINE EMovementState GetMovementState() const { return MovementState; }
 
 	UFUNCTION(BlueprintGetter, Category = "Movement|Analys", meta = (BlueprintThreadSafe))
-	FORCEINLINE FRotationMode GetRotationMode() const { return RotationMode; }
+	FORCEINLINE ERotationMode GetRotationMode() const { return RotationMode; }
 
 	UFUNCTION(BlueprintGetter, Category = "Movement|Analys", meta = (BlueprintThreadSafe))
-	FORCEINLINE FMovementMode GetMovementMode() const { return MovementMode; }
+	FORCEINLINE ECMovementMode GetMovementMode() const { return MovementMode; }
 
 	FPoseSnapshot& SnapshotFinalRagdollPose();
 
@@ -291,9 +293,8 @@ protected:
 	void SetBlendStackAnimFromChooser(const FAnimNodeReference& Node, EStateMachineState NewState,
 	                                  bool bForceBlend = false);
 
-	UFUNCTION(BlueprintPure, Category = "StateMachine", meta = (BlueprintThreadSafe, DefaultToSelf))
+	UFUNCTION(BlueprintPure, Category = "StateMachine", meta = (BlueprintThreadSafe))
 	bool IsAnimationAlmostComplete();
-
 	UFUNCTION(BlueprintPure, Category = "StateMachine", meta = (BlueprintThreadSafe))
 	float GetDynamicPlayRate(const FAnimNodeReference& Node) const;
 
@@ -320,7 +321,4 @@ protected:
 	float GetStrafeYawRotationOffset() const;
 	UFUNCTION(BlueprintCallable, Category = "StateMachine", meta = (BlueprintThreadSafe))
 	void UpdateAnimationLoopingFlag(FGASPBlendStackInputs& Inputs) const;
-	UFUNCTION(BlueprintPure, Category = "StateMachine", meta = (BlueprintThreadSafe))
-	static bool GetCurveValueSafe(const UAnimSequence* AnimSequence, const FName& CurveName, float Time,
-	                              float& OutValue);
 };

@@ -51,3 +51,24 @@ float FGASPMath::CalculateDirection(const FVector& Vector, const FRotator& Rotat
 	// Calculate angle and clamp between -180 and 180 degrees
 	return FMath::UnwindDegrees(FMath::RadiansToDegrees(FMath::Atan2(RightDot, ForwardDot)));
 }
+
+EMovementDirection FGASPMath::GetMovementDirection(const float Angle, const float ForwardHalfAngle,
+                                                   const float AngleThreshold)
+{
+	if (Angle >= -ForwardHalfAngle - AngleThreshold && Angle <= ForwardHalfAngle + AngleThreshold)
+	{
+		return EMovementDirection::F;
+	}
+
+	if (Angle >= ForwardHalfAngle - AngleThreshold && Angle <= 180.0f - ForwardHalfAngle + AngleThreshold)
+	{
+		return EMovementDirection::RR;
+	}
+
+	if (Angle <= -(ForwardHalfAngle - AngleThreshold) && Angle >= -(180.0f - ForwardHalfAngle + AngleThreshold))
+	{
+		return EMovementDirection::LL;
+	}
+
+	return EMovementDirection::B;
+}

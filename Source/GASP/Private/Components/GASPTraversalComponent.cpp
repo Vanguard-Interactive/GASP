@@ -139,11 +139,6 @@ FTraversalResult UGASPTraversalComponent::TryTraversalAction(FTraversalCheckInpu
 		return {true, false};
 	}
 
-	auto FloatInRange = [this](const float Value, const float MinValue, const float MaxValue)
-	{
-		return Value >= MinValue && Value <= MaxValue;
-	};
-
 	// Step 1: Cache some important values for use later in the function.
 	const double StartTime = FPlatformTime::Seconds();
 	const FVector& ActorLocation = CharacterOwner->GetActorLocation();
@@ -345,7 +340,7 @@ FTraversalResult UGASPTraversalComponent::TryTraversalAction(FTraversalCheckInpu
 	FChooserEvaluationContext Context = UChooserFunctionLibrary::MakeChooserEvaluationContext();
 	Context.AddStructParam(ChooserParameters);
 	Context.AddStructParam(ChooserOutput);
-	TArray<UObject*> AnimationAssets{
+	auto AnimationAssets{
 		UChooserFunctionLibrary::EvaluateObjectChooserBaseMulti(
 			Context, UChooserFunctionLibrary::MakeEvaluateChooser(ChooserTable), UAnimMontage::StaticClass())
 	};
@@ -353,7 +348,7 @@ FTraversalResult UGASPTraversalComponent::TryTraversalAction(FTraversalCheckInpu
 
 	/* Step 5.1: Continue if there is a valid action type. If none of the conditions were met, no action can be
 	 * performed, therefore exit the function. */
-	if (NewTraversalCheckResult.ActionType == LocomotionActionTags::None)
+	if (NewTraversalCheckResult.ActionType == FGameplayTag::EmptyTag)
 	{
 		return {true, false};
 	}

@@ -1,4 +1,5 @@
-﻿#include "Actors/GASPCharacter.h"
+﻿#include "PlayMontageCallbackProxy.h"
+#include "Actors/GASPCharacter.h"
 #include "Animation/GASPAnimInstance.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/GASPCharacterMovementComponent.h"
@@ -108,7 +109,7 @@ void AGASPCharacter::StartRagdollingImplementation()
 	{
 		// Limit the ragdoll's speed for a few frames, because for some unclear reason,
 		// it can get a much higher initial speed than the character's last speed.
-		
+
 		static constexpr auto MinSpeedLimit{200.0f};
 
 		RagdollingState.SpeedLimitFrameTimeRemaining = 8;
@@ -404,7 +405,7 @@ void AGASPCharacter::StopRagdollingImplementation()
 
 		GetMesh()->bEnableUpdateRateOptimizations = false;
 
-		GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this]
+		GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this]
 		{
 			GetMesh()->bEnableUpdateRateOptimizations = true;
 		}));
@@ -436,8 +437,10 @@ void AGASPCharacter::StopRagdollingImplementation()
 		MovementComponent->Velocity = RagdollingState.Velocity;
 	}
 
-	if (bGrounded && GetMesh()->GetAnimInstance()->Montage_Play(SelectGetUpMontage(bRagdollFacingUpward)) > 0.0f)
+	SetLocomotionAction(FGameplayTag::EmptyTag);
+
+	if (bGrounded)
 	{
-		SetLocomotionAction(LocomotionActionTags::None);
+		UPlayMontageCallbackProxy::CreateProxyObjectForPlayMontage(GetMesh(), SelectGetUpMontage(bRagdollFacingUpward));
 	}
 }

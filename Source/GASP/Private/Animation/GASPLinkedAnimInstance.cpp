@@ -42,49 +42,49 @@ UGASPAnimInstance* UGASPLinkedAnimInstance::GetParent() const
 	return Parent.Get();
 }
 
-FGait UGASPLinkedAnimInstance::GetGait() const
+EGait UGASPLinkedAnimInstance::GetGait() const
 {
 	if (Parent.IsValid())
 	{
 		return Parent->GetGait();
 	}
-	return FGait();
+	return EGait();
 }
 
-FMovementState UGASPLinkedAnimInstance::GetMovementState() const
+EMovementState UGASPLinkedAnimInstance::GetMovementState() const
 {
 	if (Parent.IsValid())
 	{
 		return Parent->GetMovementState();
 	}
-	return FMovementState();
+	return EMovementState();
 }
 
-FMovementMode UGASPLinkedAnimInstance::GetMovementMode() const
+ECMovementMode UGASPLinkedAnimInstance::GetMovementMode() const
 {
 	if (Parent.IsValid())
 	{
 		return Parent->GetMovementMode();
 	}
-	return FMovementMode();
+	return ECMovementMode();
 }
 
-FStanceMode UGASPLinkedAnimInstance::GetStanceMode() const
+EStanceMode UGASPLinkedAnimInstance::GetStanceMode() const
 {
 	if (Parent.IsValid())
 	{
 		return Parent->GetStanceMode();
 	}
-	return FStanceMode();
+	return EStanceMode();
 }
 
-FRotationMode UGASPLinkedAnimInstance::GetRotationMode() const
+ERotationMode UGASPLinkedAnimInstance::GetRotationMode() const
 {
 	if (Parent.IsValid())
 	{
 		return Parent->GetRotationMode();
 	}
-	return FRotationMode();
+	return ERotationMode();
 }
 
 FCharacterInfo UGASPLinkedAnimInstance::GetCharacterInfo() const

@@ -31,19 +31,19 @@ public:
 	UGASPAnimInstance* GetParent() const;
 
 	UFUNCTION(BlueprintGetter, meta = (BlueprintThreadSafe))
-	FGait GetGait() const;
+	EGait GetGait() const;
 
 	UFUNCTION(BlueprintGetter, meta = (BlueprintThreadSafe))
-	FMovementState GetMovementState() const;
+	EMovementState GetMovementState() const;
 
 	UFUNCTION(BlueprintGetter, meta = (BlueprintThreadSafe))
-	FMovementMode GetMovementMode() const;
+	ECMovementMode GetMovementMode() const;
 
 	UFUNCTION(BlueprintGetter, meta = (BlueprintThreadSafe))
-	FStanceMode GetStanceMode() const;
+	EStanceMode GetStanceMode() const;
 
 	UFUNCTION(BlueprintGetter, meta = (BlueprintThreadSafe))
-	FRotationMode GetRotationMode() const;
+	ERotationMode GetRotationMode() const;
 
 	UFUNCTION(BlueprintGetter, meta = (BlueprintThreadSafe))
 	FCharacterInfo GetCharacterInfo() const;

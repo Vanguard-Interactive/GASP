@@ -24,7 +24,7 @@ struct GASP_API FTraversalChooserInput
 	GENERATED_BODY()
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Traversal")
-	FGameplayTag ActionType{LocomotionActionTags::None};
+	FGameplayTag ActionType{FGameplayTag::EmptyTag};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Traversal")
 	EGait Gait{EGait::Walk};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Traversal")
@@ -119,7 +119,7 @@ protected:
 	/** 
 	 * Updates motion warping targets based on traversal results 
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="Traversal")
 	void UpdateWarpTargets();
 
 	/** 
@@ -182,14 +182,14 @@ public:
 	 * @param CheckInputs - The inputs required to perform the traversal check
 	 * @return The result of the traversal check
 	 */
-	UFUNCTION(BlueprintCallable, Category="Traversal")
+	UFUNCTION(BlueprintCallable, Category="Traversal", meta = (BlueprintThreadSafe))
 	FTraversalResult TryTraversalAction(FTraversalCheckInputs CheckInputs);
 
 
 	/** 
 	 * Executes the traversal action (native event for blueprint extension) 
 	 */
-	UFUNCTION(BlueprintNativeEvent, Category="Traversal")
+	UFUNCTION(BlueprintNativeEvent, Category="Traversal", meta = (BlueprintThreadSafe))
 	void PerformTraversalAction();
 
 	/** 

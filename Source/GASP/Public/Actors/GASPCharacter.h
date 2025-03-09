@@ -34,10 +34,10 @@ class GASP_API AGASPCharacter : public ACharacter
 	UFUNCTION(Server, Reliable)
 	void Server_SetMovementMode(ECMovementMode NewMovementMode);
 
-	UPROPERTY(Transient)
+protected:
+	UPROPERTY(BlueprintReadOnly, Transient)
 	TObjectPtr<UGASPCharacterMovementComponent> MovementComponent{};
 
-protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<class UMotionWarpingComponent> MotionWarpingComponent{};
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components", Replicated)
@@ -67,7 +67,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Transient)
 	FGameplayTag OverlayMode{OverlayModeTags::Default};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Transient)
-	FGameplayTag LocomotionAction{LocomotionActionTags::None};
+	FGameplayTag LocomotionAction{FGameplayTag::EmptyTag};
 
 	UPROPERTY(BlueprintReadOnly, Transient)
 	ECMovementMode PreviousMovementMode{ECMovementMode::OnGround};

@@ -47,7 +47,7 @@ void AGASPCharacter::BeginPlay()
 	SetGait(DesiredGait, true);
 	SetRotationMode(RotationMode, true);
 	SetOverlayMode(OverlayMode, true);
-	SetLocomotionAction(LocomotionActionTags::None, true);
+	SetLocomotionAction(FGameplayTag::EmptyTag, true);
 
 	if (GetLocalRole() == ROLE_SimulatedProxy)
 	{

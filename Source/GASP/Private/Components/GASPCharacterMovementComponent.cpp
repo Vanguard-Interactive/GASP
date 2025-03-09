@@ -160,9 +160,9 @@ void UGASPCharacterMovementComponent::OnMovementModeChanged(EMovementMode Previo
 {
 	Super::OnMovementModeChanged(PreviousMovementMode, PreviousCustomMode);
 
-	if (IsMovingOnGround() || IsFalling())
+	if (IsMovingOnGround() || IsInAir())
 	{
-		RotationRate = FRotator(0.f, IsFalling() ? InAirRotationYaw : -1.f, 0.f);
+		RotationRate = FRotator(0.f, IsInAir() ? InAirRotationYaw : OnGroundRotationYaw, 0.f);
 	}
 }
 
@@ -185,7 +185,7 @@ void UGASPCharacterMovementComponent::PhysNavWalking(float deltaTime, int32 Iter
 	}
 
 	float& SpeedToUpdate{IsCrouching() ? MaxWalkSpeedCrouched : MaxWalkSpeed};
-	SpeedToUpdate = GaitSettings.GetSpeed(SafeGait, Velocity, GetLastUpdateRotation(), IsCrouching());
+	SpeedToUpdate = GaitSettings.GetSpeed(SafeGait, Velocity, GetLastUpdateRotation(), IsCrouching()) * SpeedMultiplier;
 
 	Super::PhysNavWalking(deltaTime, Iterations);
 }
@@ -204,7 +204,7 @@ void UGASPCharacterMovementComponent::PhysWalking(float deltaTime, int32 Iterati
 	}
 
 	float& SpeedToUpdate{IsCrouching() ? MaxWalkSpeedCrouched : MaxWalkSpeed};
-	SpeedToUpdate = GaitSettings.GetSpeed(SafeGait, Velocity, GetLastUpdateRotation(), IsCrouching());
+	SpeedToUpdate = GaitSettings.GetSpeed(SafeGait, Velocity, GetLastUpdateRotation(), IsCrouching()) * SpeedMultiplier;
 
 	Super::PhysWalking(deltaTime, Iterations);
 }
@@ -237,8 +237,13 @@ void UGASPCharacterMovementComponent::UpdateRotationMode()
 		bUseControllerDesiredRotation = false;
 		bOrientRotationToMovement = true;
 		break;
-	default:
+	case ERotationMode::Aim:
+	case ERotationMode::Strafe:
 		bUseControllerDesiredRotation = true;
+		bOrientRotationToMovement = false;
+		break;
+	default:
+		bUseControllerDesiredRotation = false;
 		bOrientRotationToMovement = false;
 		break;
 	}
@@ -334,4 +339,9 @@ float UGASPCharacterMovementComponent::GetMappedSpeed() const
 	}
 
 	return FMath::GetMappedRangeValueClamped<float, float>({0.0f, WalkSpeed}, {0.0f, 1.0f}, Speed);
+}
+
+bool UGASPCharacterMovementComponent::IsInAir() const
+{
+	return IsFalling() | IsFlying();
 }

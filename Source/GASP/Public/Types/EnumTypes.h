@@ -37,6 +37,7 @@ enum class EGait : uint8
 UENUM(BlueprintType, meta = (ScriptName = "ERotationMode"))
 enum class ERotationMode : uint8
 {
+	None,
 	OrientToMovement,
 	Strafe,
 	Aim
@@ -76,11 +77,11 @@ UENUM(BlueprintType, meta = (ScriptName = "EMovementDirection"))
 enum class EMovementDirection : uint8
 {
 	F UMETA(DisplayName = "Forward"),
+	RR UMETA(DisplayName = "Right"),
 	B UMETA(DisplayName = "Backward"),
 	LL UMETA(DisplayName = "Left"),
 	LR UMETA(DisplayName = "Left->Right"),
 	RL UMETA(DisplayName = "Right->Left"),
-	RR UMETA(DisplayName = "Right"),
 };
 
 UENUM(BlueprintType, meta = (ScriptName = "EMovementDirectionBias"))

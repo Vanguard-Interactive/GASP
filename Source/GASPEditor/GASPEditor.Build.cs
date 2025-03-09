@@ -2,25 +2,31 @@
 
 public class GASPEditor : ModuleRules
 {
-    public GASPEditor(ReadOnlyTargetRules Target) : base(Target)
-    {
-        PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+	public GASPEditor(ReadOnlyTargetRules Target) : base(Target)
+	{
+		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_5;
 
-        PublicDependencyModuleNames.AddRange(
-            new string[]
-            {
-                "Core",
-            }
-        );
+		bEnableNonInlinedGenCppWarnings = true;
+		// UnsafeTypeCastWarningLevel = WarningLevel.Warning;
 
-        PrivateDependencyModuleNames.AddRange(
-            new string[]
-            {
-                "CoreUObject",
-                "Engine",
-                "Slate",
-                "SlateCore"
-            }
-        );
-    }
+		PublicDependencyModuleNames.AddRange(new[]
+		{
+			"Core", "CoreUObject", "Engine", "AnimGraphRuntime", "AnimationModifiers", "AnimationBlueprintLibrary",
+			"GASP", "GameplayTags"
+		});
+
+		if (Target.bBuildEditor)
+		{
+			PublicDependencyModuleNames.AddRange(new[]
+			{
+				"AnimGraph"
+			});
+
+			PrivateDependencyModuleNames.AddRange(new[]
+			{
+				"BlueprintGraph"
+			});
+		}
+	}
 }

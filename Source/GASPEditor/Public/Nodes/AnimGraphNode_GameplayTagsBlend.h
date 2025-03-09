@@ -4,13 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "AnimGraphNode_BlendListBase.h"
+#include "Nodes/AnimNode_GameplayTagsBlend.h"
 #include "AnimGraphNode_GameplayTagsBlend.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class GASP_API UAnimGraphNode_GameplayTagsBlend : public UAnimGraphNode_BlendListBase
+class GASPEDITOR_API UAnimGraphNode_GameplayTagsBlend : public UAnimGraphNode_BlendListBase
 {
 	GENERATED_BODY()
 
@@ -33,4 +34,5 @@ public:
 
 protected:
 	static void GetBlendPinProperties(const UEdGraphPin* Pin, bool& bBlendPosePin, bool& bBlendTimePin);
+	FName GetSimpleTagName(FGameplayTag Tags) const;
 };
