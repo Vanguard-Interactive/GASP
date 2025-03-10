@@ -35,7 +35,7 @@ void UGASPAnimInstance::OnLanded(const FHitResult& HitResult)
 
 void UGASPAnimInstance::OnOverlayModeChanged(const FGameplayTag OldOverlayMode)
 {
-	if (!CachedCharacter.IsValid() || CachedCharacter->GetOverlayMode() == OldOverlayMode)
+	if (!CachedCharacter.IsValid())
 	{
 		return;
 	}

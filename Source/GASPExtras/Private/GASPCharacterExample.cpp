@@ -78,6 +78,7 @@ void AGASPCharacterExample::JumpAction(bool bPressed)
 		StopRagdolling();
 		return;
 	}
+
 	if (bPressed && !IsDoingTraversal())
 	{
 		const FTraversalResult Result = TryTraversalAction();
