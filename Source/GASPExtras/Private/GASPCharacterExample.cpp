@@ -73,6 +73,11 @@ void AGASPCharacterExample::CrouchAction(bool bPressed)
 
 void AGASPCharacterExample::JumpAction(bool bPressed)
 {
+	if (LocomotionAction == LocomotionActionTags::Ragdoll)
+	{
+		StopRagdolling();
+		return;
+	}
 	if (bPressed && !IsDoingTraversal())
 	{
 		const FTraversalResult Result = TryTraversalAction();

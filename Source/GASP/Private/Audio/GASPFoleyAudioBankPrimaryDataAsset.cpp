@@ -11,14 +11,6 @@ TSoftObjectPtr<USoundBase> UGASPFoleyAudioBankPrimaryDataAsset::GetSoundFromEven
 	const TSoftObjectPtr<USoundBase>& SoundEffect = FoleyPrimaryData.FindRef(Event);
 
 	return SoundEffect;
-	// Нужно проверить загружен ли объект в память
-	// USoundBase* LoadedSound = SoundEffect.Get();
-	// if (!IsValid(LoadedSound))
-	// {
-	// 	PreloadSoundsAsync();
-	// 	return nullptr;
-	// }
-	// return LoadedSound;
 }
 
 void UGASPFoleyAudioBankPrimaryDataAsset::PreloadSoundsAsync()
