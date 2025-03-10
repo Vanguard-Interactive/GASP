@@ -65,7 +65,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float InAirRotationYaw{200.f};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float OnGroundRotationYaw{360.f};
+	float OnGroundRotationYaw{-1.f};
 
 	EGait SafeGait{EGait::Walk};
 	ERotationMode SafeRotationMode{ERotationMode::OrientToMovement};

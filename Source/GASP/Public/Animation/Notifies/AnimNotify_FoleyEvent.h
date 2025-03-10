@@ -23,10 +23,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AnimNotify")
 	EFoleyEventSide Side{EFoleyEventSide::None};
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AnimNotify")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AnimNotify", Meta = (ClampMin = 0, ForceUnits = "x"))
 	float VolumeMultiplier{1.f};
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AnimNotify")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AnimNotify", Meta = (ClampMin = 0, ForceUnits = "x"))
 	float PitchMultiplier{1.f};
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AnimNotify")
@@ -47,9 +47,9 @@ protected:
 
 public:
 	UAnimNotify_FoleyEvent();
+
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
 	                    const FAnimNotifyEventReference& EventReference) override;
-
 
 	virtual FString GetNotifyName_Implementation() const override;
 

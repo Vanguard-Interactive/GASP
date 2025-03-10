@@ -6,21 +6,29 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GASPFoleyAudioBankPrimaryDataAsset)
 
-USoundBase* UGASPFoleyAudioBankPrimaryDataAsset::GetSoundFromEvent(const FGameplayTag Event) const
+TSoftObjectPtr<USoundBase> UGASPFoleyAudioBankPrimaryDataAsset::GetSoundFromEvent(const FGameplayTag Event)
 {
 	const TSoftObjectPtr<USoundBase>& SoundEffect = FoleyPrimaryData.FindRef(Event);
 
-	return SoundEffect.LoadSynchronous();
+	return SoundEffect;
+	// Нужно проверить загружен ли объект в память
+	// USoundBase* LoadedSound = SoundEffect.Get();
+	// if (!IsValid(LoadedSound))
+	// {
+	// 	PreloadSoundsAsync();
+	// 	return nullptr;
+	// }
+	// return LoadedSound;
 }
 
 void UGASPFoleyAudioBankPrimaryDataAsset::PreloadSoundsAsync()
 {
 	TArray<FSoftObjectPath> SoundPaths;
-	for (const auto& Pair : FoleyPrimaryData)
+	for (const auto& [Key, Value] : FoleyPrimaryData)
 	{
-		if (Pair.Value.IsValid())
+		if (Value.IsValid())
 		{
-			SoundPaths.Add(Pair.Value.ToSoftObjectPath());
+			SoundPaths.Add(Value.ToSoftObjectPath());
 		}
 	}
 
@@ -35,6 +43,7 @@ void UGASPFoleyAudioBankPrimaryDataAsset::PreloadSoundsAsync()
 
 void UGASPFoleyAudioBankPrimaryDataAsset::HandleAssetsLoaded()
 {
+	UE_LOG(LogTemp, Warning, TEXT("Loaded"))
 	StreamableHandle.Reset();
 	OnSoundsPreloaded.Broadcast();
 }

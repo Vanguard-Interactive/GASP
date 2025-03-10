@@ -54,10 +54,10 @@ void UAnimNotifyState_MontageBlendOut::NotifyTick(USkeletalMeshComponent* MeshCo
 
 	if (ShouldBlendOut)
 	{
-		FMontageBlendSettings BlendOutSettings{AnimMontage->BlendOut};
+		FMontageBlendSettings BlendOutSettings{};
 		BlendOutSettings.Blend.BlendTime = BlendOutTime;
 		BlendOutSettings.Blend.BlendOption = EAlphaBlendOption::HermiteCubic;
-		BlendOutSettings.Blend.CustomCurve = nullptr;
+		BlendOutSettings.Blend.CustomCurve = AnimMontage->BlendOut.GetCustomCurve();
 		BlendOutSettings.BlendMode = AnimMontage->BlendModeOut;
 		BlendOutSettings.BlendProfile = const_cast<UBlendProfile*>(AnimInstance->
 			GetBlendProfileByName(BlendProfile));

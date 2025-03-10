@@ -40,6 +40,7 @@ void UAnimNotify_FoleyEvent::Notify(USkeletalMeshComponent* MeshComp, UAnimSeque
 {
 	Super::Notify(MeshComp, Animation, EventReference);
 
+
 	if (!GetFoleyAudioBank(MeshComp) && !IsValid(DefaultBank))
 	{
 		return;
@@ -67,9 +68,23 @@ void UAnimNotify_FoleyEvent::Notify(USkeletalMeshComponent* MeshComp, UAnimSeque
 		return;
 	}
 
-	UGameplayStatics::PlaySoundAtLocation(WorldContext, DefaultBank->GetSoundFromEvent(Event),
-	                                      MeshComp->GetComponentLocation(),
-	                                      VolumeMultiplier, PitchMultiplier);
+	if (!FAnimWeight::IsRelevant(VolumeMultiplier) || !IsValid(DefaultBank->GetSoundFromEvent(Event).LoadSynchronous()))
+	{
+		return;
+	}
+
+	if (WorldContext->WorldType == EWorldType::EditorPreview)
+	{
+		UGameplayStatics::PlaySoundAtLocation(WorldContext, DefaultBank->GetSoundFromEvent(Event).Get(),
+		                                      MeshComp->GetComponentLocation(),
+		                                      VolumeMultiplier, PitchMultiplier);
+	}
+	else
+	{
+		UGameplayStatics::SpawnSoundAtLocation(WorldContext, DefaultBank->GetSoundFromEvent(Event).Get(), Hit.Location,
+		                                       Hit.Location.ToOrientationRotator(), VolumeMultiplier, PitchMultiplier);
+	}
+
 
 #if WITH_EDITOR && ALLOW_CONSOLE
 
@@ -87,8 +102,8 @@ void UAnimNotify_FoleyEvent::Notify(USkeletalMeshComponent* MeshComp, UAnimSeque
 		                             ? MeshComp->GetComponentLocation()
 		                             : SocketLocation;
 
-	// UVisualLoggerKismetLibrary::LogSphere(WorldContext, SphereCenter, 5.f, VisLogDebugText, VisLogDebugColor,
-	//                                       FName(TEXT("VisLogFoley")));
+	// UVisualLoggerKismetLibrary::LogSphere(WorldContext->GetClass(), SphereCenter, 5.f, VisLogDebugText,
+	//                                       VisLogDebugColor, FName(TEXT("VisLogFoley")));
 	DrawDebugSphere(WorldContext, SphereCenter, 10.f, 12, VisLogDebugColor.ToRGBE(),
 	                false, 4.f);
 #endif

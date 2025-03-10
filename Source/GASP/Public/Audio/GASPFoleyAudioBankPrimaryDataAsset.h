@@ -29,7 +29,7 @@ public:
 	FOnSoundsPreloaded OnSoundsPreloaded;
 
 	UFUNCTION(BlueprintPure, Category = "Foley|Audio", meta=(AutoCreateRefTerm="Event"))
-	USoundBase* GetSoundFromEvent(const FGameplayTag Event) const;
+	TSoftObjectPtr<USoundBase> GetSoundFromEvent(const FGameplayTag Event);
 
 	UFUNCTION(BlueprintCallable, Category = "Foley|Audio")
 	void PreloadSoundsAsync();

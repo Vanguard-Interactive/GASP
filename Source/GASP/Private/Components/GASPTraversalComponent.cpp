@@ -39,6 +39,11 @@ UGASPTraversalComponent::UGASPTraversalComponent()
 	SetIsReplicatedByDefault(true);
 }
 
+void UGASPTraversalComponent::AsyncChooserLoaded()
+{
+	StreamableHandle.Reset();
+}
+
 void UGASPTraversalComponent::BeginPlay()
 {
 	Super::BeginPlay();
@@ -57,6 +62,11 @@ void UGASPTraversalComponent::BeginPlay()
 	{
 		AnimInstance = Cast<UGASPAnimInstance>(MeshComponent->GetAnimInstance());
 	}
+
+	StreamableHandle = StreamableManager.RequestAsyncLoad(TraversalAnimationsChooserTable.ToSoftObjectPath(),
+	                                                      FStreamableDelegate::CreateUObject(
+		                                                      this, &ThisClass::AsyncChooserLoaded),
+	                                                      FStreamableManager::DefaultAsyncLoadPriority, false);
 }
 
 void UGASPTraversalComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -322,7 +332,7 @@ FTraversalResult UGASPTraversalComponent::TryTraversalAction(FTraversalCheckInpu
 		}
 	}
 
-	UChooserTable* ChooserTable{TraversalAnimationsChooserTable.LoadSynchronous()};
+	UChooserTable* ChooserTable{TraversalAnimationsChooserTable.Get()};
 	// Step 5.3: Evaluate a chooser to select all montages that match the conditions of the traversal check.
 	FTraversalChooserInput ChooserParameters;
 	ChooserParameters.ActionType = NewTraversalCheckResult.ActionType;

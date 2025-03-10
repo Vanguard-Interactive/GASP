@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "Components/ActorComponent.h"
+#include "Engine/StreamableManager.h"
 #include "Types/EnumTypes.h"
 #include "Types/GameplayTags.h"
 #include "Types/StructTypes.h"
@@ -100,11 +101,16 @@ class GASP_API UGASPTraversalComponent : public UActorComponent
 	UPROPERTY(VisibleAnywhere, Category="Traversal")
 	FTimerHandle TraversalEndHandle;
 
+	FStreamableManager StreamableManager;
+	TSharedPtr<FStreamableHandle> StreamableHandle;
+
 public:
 	// Sets default values for this component's properties
 	UGASPTraversalComponent();
 
 protected:
+	void AsyncChooserLoaded();
+
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -182,14 +188,14 @@ public:
 	 * @param CheckInputs - The inputs required to perform the traversal check
 	 * @return The result of the traversal check
 	 */
-	UFUNCTION(BlueprintCallable, Category="Traversal", meta = (BlueprintThreadSafe))
+	UFUNCTION(BlueprintCallable, Category="Traversal")
 	FTraversalResult TryTraversalAction(FTraversalCheckInputs CheckInputs);
 
 
 	/** 
 	 * Executes the traversal action (native event for blueprint extension) 
 	 */
-	UFUNCTION(BlueprintNativeEvent, Category="Traversal", meta = (BlueprintThreadSafe))
+	UFUNCTION(BlueprintNativeEvent, Category="Traversal")
 	void PerformTraversalAction();
 
 	/** 
