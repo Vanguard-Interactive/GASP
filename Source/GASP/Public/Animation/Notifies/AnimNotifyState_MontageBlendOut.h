@@ -24,6 +24,8 @@ protected:
 	FName BlendProfile{TEXT("FastFeet_InstantRoot")};
 
 public:
+	UAnimNotifyState_MontageBlendOut();
+
 	virtual FString GetNotifyName_Implementation() const override;
 
 	virtual void NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float FrameDeltaTime,

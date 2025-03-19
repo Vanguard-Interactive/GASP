@@ -7,6 +7,13 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(AnimNotifyState_EarlyTransition)
 
+UAnimNotifyState_EarlyTransition::UAnimNotifyState_EarlyTransition()
+{
+#if WITH_EDITORONLY_DATA
+	bShouldFireInEditor = false;
+#endif
+}
+
 void UAnimNotifyState_EarlyTransition::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
                                                   float FrameDeltaTime, const FAnimNotifyEventReference& EventReference)
 {

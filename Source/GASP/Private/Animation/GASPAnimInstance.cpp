@@ -10,7 +10,6 @@
 #include "ChooserFunctionLibrary.h"
 #include "PoseSearch/PoseSearchLibrary.h"
 #include "AnimationWarpingLibrary.h"
-#include "BlendStack/AnimNode_BlendStack.h"
 #include "BlendStack/BlendStackAnimNodeLibrary.h"
 #include "BoneControllers/AnimNode_FootPlacement.h"
 #include "Engine/AssetManager.h"
@@ -21,16 +20,23 @@
 static IConsoleVariable* OffsetRootEnabledVar = IConsoleManager::Get().FindConsoleVariable(
 	TEXT("a.animnode.offsetrootbone.enable"));
 static IConsoleVariable* MMLodVar = IConsoleManager::Get().FindConsoleVariable(TEXT("DDCvar.MMDatabaseLOD"));
+static IConsoleVariable* ExperimentalStateMachineVar = IConsoleManager::Get().FindConsoleVariable(
+	TEXT("DDCVar.ExperimentalStateMachine.Enable"));
+
 #endif
 
 void UGASPAnimInstance::OnLanded(const FHitResult& HitResult)
 {
 	bLanded = true;
 
-	GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this]()
+	GetWorld()->GetTimerManager().SetTimer(LandedHandle, FTimerDelegate::CreateWeakLambda(this, [this]()
 	{
 		bLanded = false;
-	}));
+	}), .3f, false);
+	// GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this]()
+	// {
+	// 	bLanded = false;
+	// }));
 }
 
 void UGASPAnimInstance::OnOverlayModeChanged(const FGameplayTag OldOverlayMode)
@@ -39,7 +45,6 @@ void UGASPAnimInstance::OnOverlayModeChanged(const FGameplayTag OldOverlayMode)
 	{
 		return;
 	}
-
 	OverlayMode = FGameplayTagContainer(CachedCharacter->GetOverlayMode());
 
 	USkeletalMeshComponent* Mesh = CachedCharacter->GetMesh();
@@ -48,9 +53,12 @@ void UGASPAnimInstance::OnOverlayModeChanged(const FGameplayTag OldOverlayMode)
 		return;
 	}
 
-	const UGASPOverlayLayeringDataAsset* DataAsset = static_cast<UGASPOverlayLayeringDataAsset*>(
-		UChooserFunctionLibrary::EvaluateChooser(this, OverlayTable.LoadSynchronous(),
-		                                         UGASPOverlayLayeringDataAsset::StaticClass()));
+	const UGASPOverlayLayeringDataAsset* DataAsset{
+		static_cast<UGASPOverlayLayeringDataAsset*>(
+			UChooserFunctionLibrary::EvaluateChooser(
+				this, OverlayTable.LoadSynchronous() ? OverlayTable.Get() : nullptr,
+				UGASPOverlayLayeringDataAsset::StaticClass()))
+	};
 
 	if (IsValid(DataAsset))
 	{
@@ -61,9 +69,8 @@ void UGASPAnimInstance::OnOverlayModeChanged(const FGameplayTag OldOverlayMode)
 EPoseSearchInterruptMode UGASPAnimInstance::GetMatchingInterruptMode() const
 {
 	return MovementMode != PreviousMovementMode || (MovementMode == ECMovementMode::OnGround && (MovementState !=
-		       PreviousMovementState
-		       || (Gait != PreviousGait && MovementState == EMovementState::Moving) || StanceMode !=
-		       PreviousStanceMode))
+		       PreviousMovementState || (Gait != PreviousGait && MovementState == EMovementState::Moving) || StanceMode
+		       != PreviousStanceMode))
 		       ? EPoseSearchInterruptMode::InterruptOnDatabaseChange
 		       : EPoseSearchInterruptMode::DoNotInterrupt;
 }
@@ -92,7 +99,7 @@ float UGASPAnimInstance::GetOffsetRootTranslationHalfLife() const
 
 EOrientationWarpingSpace UGASPAnimInstance::GetOrientationWarpingSpace() const
 {
-	return OffsetRootBoneEnabled
+	return bOffsetRootBoneEnabled
 		       ? EOrientationWarpingSpace::RootBoneTransform
 		       : EOrientationWarpingSpace::ComponentTransform;
 }
@@ -217,7 +224,11 @@ void UGASPAnimInstance::RefreshCVar()
 #if ALLOW_CONSOLE
 	if (OffsetRootEnabledVar)
 	{
-		OffsetRootBoneEnabled = OffsetRootEnabledVar->GetBool();
+		bOffsetRootBoneEnabled = OffsetRootEnabledVar->GetBool();
+	}
+	if (ExperimentalStateMachineVar)
+	{
+		bUseExperimentalStateMachine = ExperimentalStateMachineVar->GetBool();
 	}
 	if (MMLodVar)
 	{
@@ -317,14 +328,14 @@ float UGASPAnimInstance::GetMatchingBlendTime() const
 
 FFootPlacementPlantSettings UGASPAnimInstance::GetPlantSettings() const
 {
-	return BlendStackInputs.Tags.Contains(AnimNames.StopsTag)
+	return BlendStack.DatabaseTags.Contains(AnimNames.StopsTag)
 		       ? PlantSettings_Stops
 		       : PlantSettings_Default;
 }
 
 FFootPlacementInterpolationSettings UGASPAnimInstance::GetPlantInterpolationSettings() const
 {
-	return BlendStackInputs.Tags.Contains(AnimNames.StopsTag)
+	return BlendStack.DatabaseTags.Contains(AnimNames.StopsTag)
 		       ? InterpolationSettings_Stops
 		       : InterpolationSettings_Default;
 }
@@ -573,7 +584,7 @@ void UGASPAnimInstance::RefreshMatchingPostSelection(const FAnimUpdateContext& C
 
 void UGASPAnimInstance::RefreshOffsetRoot(const FAnimUpdateContext& Context, const FAnimNodeReference& Node)
 {
-	if (!OffsetRootBoneEnabled)
+	if (!bOffsetRootBoneEnabled)
 	{
 		return;
 	}
@@ -620,7 +631,7 @@ void UGASPAnimInstance::RefreshEssentialValues(const float DeltaSeconds)
 	TRACE_CPUPROFILER_EVENT_SCOPE(__FUNCTION__);
 	CharacterInfo.ActorTransform = CachedCharacter->GetActorTransform();
 
-	if (!OffsetRootBoneEnabled)
+	if (!bOffsetRootBoneEnabled)
 	{
 		CharacterInfo.RootTransform = CharacterInfo.ActorTransform;
 	}
@@ -715,8 +726,7 @@ void UGASPAnimInstance::RefreshLayering(float DeltaTime)
 		1.f - FMath::FloorToInt(LayeringState.ArmRightLocalSpaceBlendAmount));
 
 	BlendPoses.BasePoseN = FMath::FInterpTo(BlendPoses.BasePoseN, StanceMode == EStanceMode::Stand ? 1.f : 0.f,
-	                                        DeltaTime,
-	                                        15.f);
+	                                        DeltaTime, 15.f);
 	BlendPoses.BasePoseCLF = FMath::GetMappedRangeValueClamped<float, float>(
 		{0.f, 1.f}, {1.f, 0.f}, BlendPoses.BasePoseN);
 }
@@ -754,7 +764,7 @@ void UGASPAnimInstance::SetBlendStackAnimFromChooser(const FAnimNodeReference& N
 	BlendStackInputs.StartTime = ChooserOutputs.StartTime;
 	BlendStackInputs.BlendTime = ChooserOutputs.BlendTime;
 	BlendStackInputs.BlendProfile = GetBlendProfileByName(ChooserOutputs.BlendProfile);
-	BlendStackInputs.Tags = ChooserOutputs.Tags;
+	BlendStack.DatabaseTags = ChooserOutputs.Tags;
 
 	if (ChooserOutputs.bUseMotionMatching)
 	{

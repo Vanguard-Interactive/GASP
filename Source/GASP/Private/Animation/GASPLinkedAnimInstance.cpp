@@ -16,7 +16,7 @@ void UGASPLinkedAnimInstance::NativeInitializeAnimation()
 	Super::NativeInitializeAnimation();
 
 	Parent = Cast<UGASPAnimInstance>(GetSkelMeshComponent()->GetAnimInstance());
-	Character = Cast<AGASPCharacter>(GetOwningActor());
+	Character = Cast<AGASPCharacter>(TryGetPawnOwner());
 
 #if WITH_EDITOR
 	const auto* World{GetWorld()};
@@ -40,6 +40,11 @@ void UGASPLinkedAnimInstance::NativeInitializeAnimation()
 UGASPAnimInstance* UGASPLinkedAnimInstance::GetParent() const
 {
 	return Parent.Get();
+}
+
+AGASPCharacter* UGASPLinkedAnimInstance::GetCharacter() const
+{
+	return Character;
 }
 
 EGait UGASPLinkedAnimInstance::GetGait() const

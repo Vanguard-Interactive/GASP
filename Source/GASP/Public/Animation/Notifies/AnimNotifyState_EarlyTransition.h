@@ -24,6 +24,8 @@ protected:
 	EGait GaitNotEqual{EGait::Walk};
 
 public:
+	UAnimNotifyState_EarlyTransition();
+
 	virtual void NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float FrameDeltaTime,
 	                        const FAnimNotifyEventReference& EventReference) override;
 

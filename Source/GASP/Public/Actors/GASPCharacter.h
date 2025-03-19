@@ -10,6 +10,7 @@
 #include "Types/GameplayTags.h"
 #include "Types/StructTypes.h"
 #include "GASPCharacter.generated.h"
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnOverlayModeChanged, FGameplayTag, OldOverlayMode);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRotationModeChanged, ERotationMode, OldRotationMode);

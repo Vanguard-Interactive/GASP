@@ -3,10 +3,17 @@
 
 #include "Animation/Notifies/AnimNotifyState_MontageBlendOut.h"
 #include "Actors/GASPCharacter.h"
-#include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Types/EnumTypes.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(AnimNotifyState_MontageBlendOut)
+
+UAnimNotifyState_MontageBlendOut::UAnimNotifyState_MontageBlendOut()
+{
+#if WITH_EDITORONLY_DATA
+	bShouldFireInEditor = false;
+#endif
+}
 
 FString UAnimNotifyState_MontageBlendOut::GetNotifyName_Implementation() const
 {
@@ -36,15 +43,14 @@ void UAnimNotifyState_MontageBlendOut::NotifyTick(USkeletalMeshComponent* MeshCo
 		return;
 	}
 
-	UAnimMontage* AnimMontage = static_cast<UAnimMontage*>(Animation);
+	UAnimMontage* AnimMontage = Cast<UAnimMontage>(Animation);
 
-	bool ShouldBlendOut = [&]()
+	const bool ShouldBlendOut = [&]()
 	{
 		switch (BlendOutCondition)
 		{
 		case ETraversalBlendOutCondition::WithMovementInput:
 			return !Character->GetReplicatedAcceleration().IsNearlyZero(.1f);
-
 		case ETraversalBlendOutCondition::IfFalling:
 			return Character->GetMovementMode() == ECMovementMode::InAir;
 		default:
@@ -54,13 +60,10 @@ void UAnimNotifyState_MontageBlendOut::NotifyTick(USkeletalMeshComponent* MeshCo
 
 	if (ShouldBlendOut)
 	{
-		FMontageBlendSettings BlendOutSettings{};
+		FMontageBlendSettings BlendOutSettings;
 		BlendOutSettings.Blend.BlendTime = BlendOutTime;
-		BlendOutSettings.Blend.BlendOption = EAlphaBlendOption::HermiteCubic;
-		BlendOutSettings.Blend.CustomCurve = AnimMontage->BlendOut.GetCustomCurve();
-		BlendOutSettings.BlendMode = AnimMontage->BlendModeOut;
-		BlendOutSettings.BlendProfile = const_cast<UBlendProfile*>(AnimInstance->
-			GetBlendProfileByName(BlendProfile));
+		BlendOutSettings.BlendMode = EMontageBlendMode::Standard;
+		BlendOutSettings.BlendProfile = const_cast<UBlendProfile*>(AnimInstance->GetBlendProfileByName(BlendProfile));
 
 		AnimInstance->Montage_StopWithBlendSettings(BlendOutSettings, AnimMontage);
 	}

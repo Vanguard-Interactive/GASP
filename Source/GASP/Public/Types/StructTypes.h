@@ -299,8 +299,6 @@ struct GASP_API FGASPBlendStackInputs
 	float BlendTime{.0f};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP")
 	TWeakObjectPtr<const class UBlendProfile> BlendProfile{};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP")
-	TArray<FName> Tags;
 };
 
 USTRUCT(BlueprintType)

@@ -474,8 +474,7 @@ bool AGASPCharacter::IsDoingTraversal() const
 FTraversalCheckInputs AGASPCharacter::GetTraversalCheckInputs() const
 {
 	const FVector ForwardVector{GetActorForwardVector()};
-	if (const EMovementMode CMovementMode = MovementComponent->MovementMode; CMovementMode == MOVE_Falling ||
-		CMovementMode == MOVE_Flying)
+	if (MovementMode == ECMovementMode::InAir)
 	{
 		return {
 			ForwardVector, 75.f, FVector::ZeroVector,

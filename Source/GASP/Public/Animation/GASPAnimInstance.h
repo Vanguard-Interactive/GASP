@@ -24,6 +24,8 @@ class GASP_API UGASPAnimInstance : public UAnimInstance
 {
 	GENERATED_BODY()
 
+	FTimerHandle LandedHandle;
+
 protected:
 	/**************
 	 * References *
@@ -70,19 +72,19 @@ protected:
 	FGASPBlendPoses BlendPoses;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
-	EStanceMode PreviousStanceMode;
+	EStanceMode PreviousStanceMode{EStanceMode::Stand};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
-	EGait PreviousGait;
+	EGait PreviousGait{EGait::Run};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
-	EMovementState PreviousMovementState;
+	EMovementState PreviousMovementState{EMovementState::Idle};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
-	ERotationMode PreviousRotationMode;
+	ERotationMode PreviousRotationMode{ERotationMode::None};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
-	ECMovementMode PreviousMovementMode;
+	ECMovementMode PreviousMovementMode{ECMovementMode::OnGround};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
 	FCharacterInfo PreviousCharacterInfo;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
-	FGameplayTag PreviousLocomotionAction;
+	FGameplayTag PreviousLocomotionAction{FGameplayTag::EmptyTag};
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient)
 	FGameplayTagContainer OverlayMode{OverlayModeTags::Default};
@@ -177,7 +179,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "MovementInformation|General", BlueprintReadOnly)
 	int32 MMDatabaseLOD{0};
 	UPROPERTY(EditAnywhere, Category = "MovementInformation|General", BlueprintReadOnly)
-	uint8 OffsetRootBoneEnabled : 1 {false};
+	uint8 bOffsetRootBoneEnabled : 1 {false};
+	UPROPERTY(EditAnywhere, Category = "MovementInformation|General", BlueprintReadOnly)
+	uint8 bUseExperimentalStateMachine : 1 {false};
 
 public:
 	UFUNCTION(BlueprintPure, Category = "AimOffset", meta = (BlueprintThreadSafe))

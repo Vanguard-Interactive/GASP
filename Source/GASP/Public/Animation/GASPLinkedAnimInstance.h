@@ -19,7 +19,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "State", Transient)
 	TWeakObjectPtr<class UGASPAnimInstance> Parent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, Category = "State", Transient)
 	TObjectPtr<class AGASPCharacter> Character;
 
 public:
@@ -29,6 +29,9 @@ public:
 
 	UFUNCTION(BlueprintPure, meta = (HideSelfPin, BlueprintThreadSafe, ReturnDisplayName = "Parent"))
 	UGASPAnimInstance* GetParent() const;
+
+	UFUNCTION(BlueprintPure, meta = (HideSelfPin, BlueprintThreadSafe, ReturnDisplayName = "Character"))
+	AGASPCharacter* GetCharacter() const;
 
 	UFUNCTION(BlueprintGetter, meta = (BlueprintThreadSafe))
 	EGait GetGait() const;
