@@ -121,9 +121,9 @@ struct GASP_API FMotionMatchingInfo
 	float OrientationAlpha{.2f};
 	UPROPERTY(BlueprintReadOnly)
 	float PreviousDesiredYawRotation{0.f};
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, meta = (ClampMin = 0))
 	float AnimTime{0.f};
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, meta = (ClampMin = 0))
 	float PlayRate{0.f};
 	UPROPERTY(BlueprintReadOnly)
 	TWeakObjectPtr<class UAnimationAsset> AnimAsset;
@@ -260,14 +260,14 @@ struct GASP_API FRagdollingState
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "State|Character")
 	FVector Velocity{ForceInit};
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "State|Character", Meta = (ForceUnits = "N"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "State|Character", meta = (ForceUnits = "N"))
 	float PullForce{0.0f};
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "State|Character", Meta = (ClampMin = 0))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "State|Character", meta = (ClampMin = 0))
 	int32 SpeedLimitFrameTimeRemaining{0};
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "State|Character",
-		Meta = (ClampMin = 0, ForceUnits = "cm/s"))
+		meta = (ClampMin = 0, ForceUnits = "cm/s"))
 	float SpeedLimit{0.0f};
 };
 
@@ -279,7 +279,7 @@ struct GASP_API FRagdollingAnimationState
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP")
 	FPoseSnapshot FinalRagdollPose;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP", Meta = (ClampMin = 0, ClampMax = 1, ForceUnits = "x"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP", meta = (ClampMin = 0, ClampMax = 1, ForceUnits = "x"))
 	float FlailPlayRate{1.0f};
 };
 
@@ -293,9 +293,9 @@ struct GASP_API FGASPBlendStackInputs
 	TWeakObjectPtr<class UAnimationAsset> AnimationAsset{};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP")
 	bool bLoop{false};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP", meta = (ClampMin = 0))
 	float StartTime{.0f};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP", meta = (ClampMin = 0))
 	float BlendTime{.0f};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP")
 	TWeakObjectPtr<const class UBlendProfile> BlendProfile{};
@@ -306,13 +306,13 @@ struct GASP_API FGASPChooserOutputs
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP", meta = (ClampMin = 0))
 	float StartTime{.0f};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP", meta = (ClampMin = 0))
 	float BlendTime{.3f};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP")
 	bool bUseMotionMatching{false};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP", meta = (ClampMin = 0))
 	float MMCostLimit{.0f};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP")
 	FName BlendProfile{NAME_None};
@@ -344,9 +344,9 @@ struct GASP_API FGASPBlendPoses
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP", meta = (ClampMin = 0))
 	float BasePoseN{.0f};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP", meta = (ClampMin = 0))
 	float BasePoseCLF{.0f};
 };
 
@@ -383,9 +383,9 @@ struct GASP_API FTraversalCheckResult
 	TObjectPtr<UPrimitiveComponent> HitComponent{};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Traversal")
 	TObjectPtr<const UAnimMontage> ChosenMontage{};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Traversal")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Traversal", meta = (ClampMin = 0))
 	float StartTime{0.f};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Traversal")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Traversal", meta = (ClampMin = 0))
 	float PlayRate{0.f};
 
 	FORCEINLINE FString ToString() const
@@ -397,4 +397,15 @@ struct GASP_API FTraversalCheckResult
 			bHasFrontLedge, bHasBackLedge, bHasBackFloor, ObstacleHeight, ObstacleDepth, BackLedgeHeight,
 			IsValid(ChosenMontage) ? *ChosenMontage->GetName() : TEXT("nullptr"), StartTime, PlayRate);
 	}
+};
+
+USTRUCT(BlueprintType)
+struct GASP_API FBlendStackMachine
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP")
+	bool bLoop{false};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GASP", meta = (ClampMin = 0))
+	float AssetTimeRemaining{.0f};
 };

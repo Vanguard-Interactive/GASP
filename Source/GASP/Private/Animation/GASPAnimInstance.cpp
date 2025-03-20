@@ -304,8 +304,8 @@ void UGASPAnimInstance::RefreshMovementDirection(float DeltaSeconds)
 		return;
 	}
 
-	if (CharacterInfo.Direction >= MovementDirectionThreshold.BR && CharacterInfo.Direction <=
-		MovementDirectionThreshold.FR)
+	if (CharacterInfo.Direction >= MovementDirectionThreshold.FR && CharacterInfo.Direction <=
+		MovementDirectionThreshold.BR)
 	{
 		MovementDirection = MovementDirectionBias == EMovementDirectionBias::RightFootForward
 			                    ? EMovementDirection::RR
@@ -598,19 +598,17 @@ void UGASPAnimInstance::RefreshOffsetRoot(const FAnimUpdateContext& Context, con
 
 FQuat UGASPAnimInstance::GetDesiredFacing() const
 {
-	// return Trajectory.GetSampleAtTime(.5f, false).Facing;
-
 	const FQuat DesiredFacing = FQuat(TargetRotation);
 	const FQuat Offset = FQuat({0.f, -90.f, 0.f});
 	return DesiredFacing * Offset;
 }
 
-// F:\UE\UE_5.5\Engine\Plugins\Animation\BlendStack\Source\Runtime\Public\BlendStack\BlendStackAnimNodeLibrary.h
 void UGASPAnimInstance::RefreshBlendStack(const FAnimUpdateContext& Context, const FAnimNodeReference& Node)
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UGASPAnimInstance::RefreshBlendStack"),
 	                            STAT_UGASPAnimInstance_RefreshBlendStack, STATGROUP_GASP)
 	TRACE_CPUPROFILER_EVENT_SCOPE(__FUNCTION__);
+	
 	BlendStack.AnimTime = UBlendStackAnimNodeLibrary::GetCurrentBlendStackAnimAssetTime(Node);
 	BlendStack.AnimAsset = UBlendStackAnimNodeLibrary::GetCurrentBlendStackAnimAsset(Node);
 	BlendStack.PlayRate = GetDynamicPlayRate(Node);
@@ -622,6 +620,24 @@ void UGASPAnimInstance::RefreshBlendStack(const FAnimUpdateContext& Context, con
 
 	UAnimationWarpingLibrary::GetCurveValueFromAnimation(NewAnimSequence, AnimNames.EnableMotionWarpingCurveName,
 	                                                     BlendStack.AnimTime, BlendStack.OrientationAlpha);
+}
+
+void UGASPAnimInstance::RefreshBlendStackMachine(const FAnimUpdateContext& Context, const FAnimNodeReference& Node)
+{
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UGASPAnimInstance::RefreshBlendStackMachine"),
+							STAT_UGASPAnimInstance_RefreshBlendStackMachine, STATGROUP_GASP)
+	TRACE_CPUPROFILER_EVENT_SCOPE(__FUNCTION__);
+
+	EAnimNodeReferenceConversionResult Result{};
+	const FBlendStackAnimNodeReference Reference{
+		UBlendStackAnimNodeLibrary::ConvertToBlendStackNode(Node, Result)
+	};
+	if (Result == EAnimNodeReferenceConversionResult::Failed)
+	{
+		return;
+	}
+	BlendStackMachine.bLoop = UBlendStackAnimNodeLibrary::IsCurrentAssetLooping(Reference);
+	BlendStackMachine.AssetTimeRemaining = UBlendStackAnimNodeLibrary::GetCurrentAssetTimeRemaining(Reference);
 }
 
 void UGASPAnimInstance::RefreshEssentialValues(const float DeltaSeconds)
@@ -805,9 +821,9 @@ void UGASPAnimInstance::SetBlendStackAnimFromChooser(const FAnimNodeReference& N
 	}
 }
 
-bool UGASPAnimInstance::IsAnimationAlmostComplete()
+bool UGASPAnimInstance::IsAnimationAlmostComplete() const
 {
-	return false;
+	return !BlendStackMachine.bLoop && BlendStackMachine.AssetTimeRemaining <= .75f;
 }
 
 float UGASPAnimInstance::GetDynamicPlayRate(const FAnimNodeReference& Node) const
@@ -919,12 +935,12 @@ void UGASPAnimInstance::RefreshTargetRotation()
 	{
 		switch (RotationMode)
 		{
-		case ERotationMode::Strafe:
+		case ERotationMode::OrientToMovement:
 			TargetRotation = CharacterInfo.ActorTransform.Rotator();
-			TargetRotation.Yaw += GetStrafeYawRotationOffset();
 			break;
 		default:
 			TargetRotation = CharacterInfo.ActorTransform.Rotator();
+			TargetRotation.Yaw += GetStrafeYawRotationOffset();
 			break;
 		}
 	}
@@ -938,6 +954,11 @@ void UGASPAnimInstance::RefreshTargetRotation()
 
 float UGASPAnimInstance::GetStrafeYawRotationOffset() const
 {
+	if (!IsValid(StrafeCurveAnimationAsset))
+	{
+		return 0.f;
+	}
+	
 	static const TMap<EMovementDirection, FName> CurveNames = {
 		{EMovementDirection::B, TEXT("StrafeOffset_B")},
 		{EMovementDirection::LL, TEXT("StrafeOffset_LL")},
@@ -950,7 +971,7 @@ float UGASPAnimInstance::GetStrafeYawRotationOffset() const
 	const float Dir = FGASPMath::CalculateDirection(BlendStack.FutureVelocity.GetSafeNormal(),
 	                                                CharacterInfo.ActorTransform.Rotator());
 	const float MappedDirection = FMath::GetMappedRangeValueClamped<float, float>({-180.f, 180.f},
-		{0.f, 8.f}, Dir);
+		{0.f, 8.f}, Dir) / 30.f;
 
 	const FName* CurveName{CurveNames.Find(MovementDirection)};
 	if (!CurveName)

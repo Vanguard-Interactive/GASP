@@ -324,8 +324,8 @@ void AGASPCharacter::MoveAction(const FVector2D& Value)
 
 void AGASPCharacter::LookAction(const FVector2D& Value)
 {
-	AddControllerYawInput(Value.Y);
-	AddControllerPitchInput(-1 * Value.X);
+	AddControllerYawInput(Value.X);
+	AddControllerPitchInput(-1 * Value.Y);
 }
 
 bool AGASPCharacter::CanSprint()

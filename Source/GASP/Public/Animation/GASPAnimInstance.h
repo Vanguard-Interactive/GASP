@@ -25,6 +25,7 @@ class GASP_API UGASPAnimInstance : public UAnimInstance
 	GENERATED_BODY()
 
 	FTimerHandle LandedHandle;
+	
 
 protected:
 	/**************
@@ -70,7 +71,9 @@ protected:
 	FRagdollingAnimationState RagdollingState;
 	UPROPERTY(VisibleAnywhere, Category = "Additive|Poses", BlueprintReadOnly, Transient)
 	FGASPBlendPoses BlendPoses;
-
+	UPROPERTY(VisibleAnywhere, Category = "Additive|Poses", BlueprintReadOnly, Transient)
+	FBlendStackMachine BlendStackMachine;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
 	EStanceMode PreviousStanceMode{EStanceMode::Stand};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
@@ -158,6 +161,8 @@ protected:
 	void RefreshOffsetRoot(const FAnimUpdateContext& Context, const FAnimNodeReference& Node);
 	UFUNCTION(BlueprintCallable, Category = "Runtime", meta = (BlueprintThreadSafe))
 	void RefreshBlendStack(const FAnimUpdateContext& Context, const FAnimNodeReference& Node);
+	UFUNCTION(BlueprintCallable, Category = "Runtime", meta = (BlueprintThreadSafe))
+	void RefreshBlendStackMachine(const FAnimUpdateContext& Context, const FAnimNodeReference& Node);
 	UFUNCTION(BlueprintCallable, Category = "Runtime", meta = (BlueprintThreadSafe))
 	void RefreshEssentialValues(const float DeltaSeconds);
 	UFUNCTION(BlueprintCallable, Category = "Runtime", meta = (BlueprintThreadSafe))
@@ -272,6 +277,9 @@ public:
 	bool bNotifyTransition_ToLoop{false};
 
 protected:
+	UPROPERTY(EditAnywhere, Category = "StateMachine", BlueprintReadOnly, Transient)
+	TObjectPtr<UAnimSequenceBase> StrafeCurveAnimationAsset;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "StateMachine", Transient)
 	FGASPBlendStackInputs PreviousBlendStackInputs{};
 	UPROPERTY(VisibleAnywhere, Category = "StateMachine", BlueprintReadOnly, Transient)
@@ -280,8 +288,6 @@ protected:
 	bool bNoValidAnim{true};
 	UPROPERTY(VisibleAnywhere, Category = "StateMachine", BlueprintReadOnly, Transient)
 	float SearchCost{.0f};
-	UPROPERTY(VisibleAnywhere, Category = "StateMachine", BlueprintReadOnly, Transient)
-	TObjectPtr<UAnimSequenceBase> StrafeCurveAnimationAsset;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "StateMachine", Transient)
 	EMovementDirection PreviousMovementDirection{};
 	UPROPERTY(VisibleAnywhere, Category = "StateMachine", BlueprintReadOnly, Transient)
@@ -298,10 +304,10 @@ protected:
 	                                  bool bForceBlend = false);
 
 	UFUNCTION(BlueprintPure, Category = "StateMachine", meta = (BlueprintThreadSafe))
-	bool IsAnimationAlmostComplete();
+	bool IsAnimationAlmostComplete() const;
 	UFUNCTION(BlueprintPure, Category = "StateMachine", meta = (BlueprintThreadSafe))
 	float GetDynamicPlayRate(const FAnimNodeReference& Node) const;
-
+	
 	UFUNCTION(BlueprintCallable, Category = "StateMachine", meta = (BlueprintThreadSafe))
 	void OnStateEntryIdleLoop(const FAnimUpdateContext& Context, const FAnimNodeReference& Node);
 	UFUNCTION(BlueprintCallable, Category = "StateMachine", meta = (BlueprintThreadSafe))
