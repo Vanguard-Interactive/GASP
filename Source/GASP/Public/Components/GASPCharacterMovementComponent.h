@@ -69,7 +69,7 @@ protected:
 
 	EGait SafeGait{EGait::Walk};
 	ERotationMode SafeRotationMode{ERotationMode::OrientToMovement};
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FGaitSettings GaitSettings;
 
 	virtual void UpdateFromCompressedFlags(uint8 Flags) override;
@@ -88,8 +88,8 @@ public:
 	virtual void OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode) override;
 
 	virtual void PhysicsRotation(float DeltaTime) override;
-	virtual void PhysNavWalking(float deltaTime, int32 Iterations) override;
-	virtual void PhysWalking(float deltaTime, int32 Iterations) override;
+	virtual void PhysNavWalking(float DeltaTime, int32 Iterations) override;
+	virtual void PhysWalking(float DeltaTime, int32 Iterations) override;
 
 	virtual void MoveSmooth(const FVector& InVelocity, const float DeltaSeconds,
 	                        FStepDownResult* OutStepDownResult = 0) override;

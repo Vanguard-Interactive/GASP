@@ -4,12 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "Types/EnumTypes.h"
+#include "GameplayTags.h"
 #include "Utils/GASPMath.h"
 #include "Curves/CurveFloat.h"
 #include "Curves/CurveVector.h"
 #include "StructTypes.generated.h"
 
-struct FGameplayTag;
 /**
  *
  */
@@ -86,7 +86,7 @@ struct GASP_API FCharacterInfo
 	float Direction{0.f};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float FlailRate{0.f};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly) 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FVector Velocity{FVector::ZeroVector};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FVector Acceleration{FVector::ZeroVector};

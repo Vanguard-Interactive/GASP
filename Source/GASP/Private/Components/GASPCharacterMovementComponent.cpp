@@ -171,7 +171,7 @@ void UGASPCharacterMovementComponent::PhysicsRotation(float DeltaTime)
 	Super::PhysicsRotation(DeltaTime);
 }
 
-void UGASPCharacterMovementComponent::PhysNavWalking(float deltaTime, int32 Iterations)
+void UGASPCharacterMovementComponent::PhysNavWalking(float DeltaTime, int32 Iterations)
 {
 	if (GaitSettings.GetMovementCurve())
 	{
@@ -187,10 +187,10 @@ void UGASPCharacterMovementComponent::PhysNavWalking(float deltaTime, int32 Iter
 	float& SpeedToUpdate{IsCrouching() ? MaxWalkSpeedCrouched : MaxWalkSpeed};
 	SpeedToUpdate = GaitSettings.GetSpeed(SafeGait, Velocity, GetLastUpdateRotation(), IsCrouching()) * SpeedMultiplier;
 
-	Super::PhysNavWalking(deltaTime, Iterations);
+	Super::PhysNavWalking(DeltaTime, Iterations);
 }
 
-void UGASPCharacterMovementComponent::PhysWalking(float deltaTime, int32 Iterations)
+void UGASPCharacterMovementComponent::PhysWalking(float DeltaTime, int32 Iterations)
 {
 	if (GaitSettings.GetMovementCurve())
 	{
@@ -206,7 +206,7 @@ void UGASPCharacterMovementComponent::PhysWalking(float deltaTime, int32 Iterati
 	float& SpeedToUpdate{IsCrouching() ? MaxWalkSpeedCrouched : MaxWalkSpeed};
 	SpeedToUpdate = GaitSettings.GetSpeed(SafeGait, Velocity, GetLastUpdateRotation(), IsCrouching()) * SpeedMultiplier;
 
-	Super::PhysWalking(deltaTime, Iterations);
+	Super::PhysWalking(DeltaTime, Iterations);
 }
 
 void UGASPCharacterMovementComponent::MoveSmooth(const FVector& InVelocity, const float DeltaSeconds,
