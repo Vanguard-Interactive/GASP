@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Types/GameplayTags.h"
+#include "Types/TagTypes.h"
 
 
 namespace MovementModeTags

@@ -5,7 +5,7 @@
 #include "BlueprintGameplayTagLibrary.h"
 #include "Interfaces/GASPFoleyAudioBankInterface.h"
 #include "Kismet/GameplayStatics.h"
-#include "Types/GameplayTags.h"
+#include "Types/TagTypes.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(AnimNotify_FoleyEvent)
 

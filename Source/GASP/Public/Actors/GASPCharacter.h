@@ -8,7 +8,7 @@
 #include "GameFramework/Character.h"
 #include "Interfaces/GASPHeldObjectInterface.h"
 #include "Types/EnumTypes.h"
-#include "Types/GameplayTags.h"
+#include "Types/TagTypes.h"
 #include "Types/StructTypes.h"
 #include "GASPCharacter.generated.h"
 
