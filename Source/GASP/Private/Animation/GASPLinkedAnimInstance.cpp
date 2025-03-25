@@ -65,13 +65,13 @@ EMovementState UGASPLinkedAnimInstance::GetMovementState() const
 	return EMovementState();
 }
 
-ECMovementMode UGASPLinkedAnimInstance::GetMovementMode() const
+FGameplayTag UGASPLinkedAnimInstance::GetMovementMode() const
 {
 	if (Parent.IsValid())
 	{
 		return Parent->GetMovementMode();
 	}
-	return ECMovementMode();
+	return FGameplayTag();
 }
 
 EStanceMode UGASPLinkedAnimInstance::GetStanceMode() const

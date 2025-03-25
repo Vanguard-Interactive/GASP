@@ -25,7 +25,12 @@ class GASP_API UGASPAnimInstance : public UAnimInstance
 	GENERATED_BODY()
 
 	FTimerHandle LandedHandle;
-	
+
+	/** Manager for asynchronous loading of assets */
+	FStreamableManager StreamableManager;
+
+	/** Handle for the current streaming request */
+	TSharedPtr<FStreamableHandle> StreamableHandle;
 
 protected:
 	/**************
@@ -57,7 +62,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "CharacterInfromation|States", BlueprintReadOnly, Transient)
 	ERotationMode RotationMode{};
 	UPROPERTY(VisibleAnywhere, Category = "CharacterInfromation|States", BlueprintReadOnly, Transient)
-	ECMovementMode MovementMode{};
+	FGameplayTagContainer MovementMode{};
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|General", Transient)
 	FCharacterInfo CharacterInfo{};
@@ -73,7 +78,7 @@ protected:
 	FGASPBlendPoses BlendPoses;
 	UPROPERTY(VisibleAnywhere, Category = "Additive|Poses", BlueprintReadOnly, Transient)
 	FBlendStackMachine BlendStackMachine;
-	
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
 	EStanceMode PreviousStanceMode{EStanceMode::Stand};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
@@ -81,9 +86,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
 	EMovementState PreviousMovementState{EMovementState::Idle};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
-	ERotationMode PreviousRotationMode{ERotationMode::None};
+	ERotationMode PreviousRotationMode{ERotationMode::OrientToMovement};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
-	ECMovementMode PreviousMovementMode{ECMovementMode::OnGround};
+	FGameplayTagContainer PreviousMovementMode{MovementModeTags::Grounded};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
 	FCharacterInfo PreviousCharacterInfo;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
@@ -93,11 +98,11 @@ protected:
 	FGameplayTagContainer OverlayMode{OverlayModeTags::Default};
 
 	UPROPERTY(EditAnywhere, Category="PoseSearchData|Choosers", BlueprintReadOnly)
-	TSoftObjectPtr<class UChooserTable> LocomotionTable{};
+	TObjectPtr<class UChooserTable> LocomotionTable{};
 	UPROPERTY(EditAnywhere, Category="PoseSearchData|Choosers", BlueprintReadOnly)
 	TSoftObjectPtr<UChooserTable> OverlayTable{};
 	UPROPERTY(EditAnywhere, Category="PoseSearchData|Choosers", BlueprintReadOnly)
-	TSoftObjectPtr<UChooserTable> StateMachineTable{};
+	TObjectPtr<UChooserTable> StateMachineTable{};
 
 	UPROPERTY(EditAnywhere, Category="PoseSearchData|Trajectory", BlueprintReadOnly, Transient)
 	FPoseSearchQueryTrajectory Trajectory{};
@@ -116,6 +121,8 @@ protected:
 	FFootPlacementInterpolationSettings InterpolationSettings_Stops{};
 	UPROPERTY(VisibleAnywhere, Category="Additive", BlueprintReadOnly, Transient)
 	FRotator SpineRotation{FRotator::ZeroRotator};
+	UPROPERTY(EditAnywhere, Category="HeldObject", BlueprintReadOnly, Transient)
+	FVector SocketOffset{FVector::ZeroVector};
 
 public:
 	UFUNCTION(BlueprintPure, Category="Movement|Analys", meta = (BlueprintThreadSafe))
@@ -213,7 +220,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "AimOffset", meta = (BlueprintThreadSafe))
 	float GetAOYaw() const;
 
+	UFUNCTION(BlueprintPure, Category = "BlendStack", meta = (BlueprintThreadSafe))
+	FTransform GetEffectorTransform(const FName ObjectIKSocketName) const;
+
 protected:
+	UFUNCTION(BlueprintPure, Category = "Movement|Analys", meta = (BlueprintThreadSafe))
+	EMovementDirection CalculateMovementDirection() const;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PoseSearchData|Trajectory", Transient)
 	FPoseSearchTrajectory_WorldCollisionResults CollisionResults{};
 
@@ -235,6 +248,7 @@ public:
 
 	virtual void NativeBeginPlay() override;
 	virtual void NativeInitializeAnimation() override;
+
 	virtual void NativeThreadSafeUpdateAnimation(float DeltaSeconds) override;
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 	virtual void PreUpdateAnimation(float DeltaSeconds) override;
@@ -267,7 +281,7 @@ public:
 	FORCEINLINE ERotationMode GetRotationMode() const { return RotationMode; }
 
 	UFUNCTION(BlueprintGetter, Category = "Movement|Analys", meta = (BlueprintThreadSafe))
-	FORCEINLINE ECMovementMode GetMovementMode() const { return MovementMode; }
+	FORCEINLINE FGameplayTag GetMovementMode() const { return MovementMode.First(); }
 
 	FPoseSnapshot& SnapshotFinalRagdollPose();
 
@@ -279,7 +293,7 @@ public:
 protected:
 	UPROPERTY(EditAnywhere, Category = "StateMachine", BlueprintReadOnly, Transient)
 	TObjectPtr<UAnimSequenceBase> StrafeCurveAnimationAsset;
-	
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "StateMachine", Transient)
 	FGASPBlendStackInputs PreviousBlendStackInputs{};
 	UPROPERTY(VisibleAnywhere, Category = "StateMachine", BlueprintReadOnly, Transient)
@@ -307,7 +321,7 @@ protected:
 	bool IsAnimationAlmostComplete() const;
 	UFUNCTION(BlueprintPure, Category = "StateMachine", meta = (BlueprintThreadSafe))
 	float GetDynamicPlayRate(const FAnimNodeReference& Node) const;
-	
+
 	UFUNCTION(BlueprintCallable, Category = "StateMachine", meta = (BlueprintThreadSafe))
 	void OnStateEntryIdleLoop(const FAnimUpdateContext& Context, const FAnimNodeReference& Node);
 	UFUNCTION(BlueprintCallable, Category = "StateMachine", meta = (BlueprintThreadSafe))

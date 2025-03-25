@@ -52,7 +52,7 @@ void UAnimNotifyState_MontageBlendOut::NotifyTick(USkeletalMeshComponent* MeshCo
 		case ETraversalBlendOutCondition::WithMovementInput:
 			return !Character->GetReplicatedAcceleration().IsNearlyZero(.1f);
 		case ETraversalBlendOutCondition::IfFalling:
-			return Character->GetMovementMode() == ECMovementMode::InAir;
+			return Character->GetMovementMode() == MovementModeTags::InAir;
 		default:
 			return true;
 		}

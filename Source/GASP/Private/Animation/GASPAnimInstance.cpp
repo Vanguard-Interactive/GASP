@@ -10,20 +10,23 @@
 #include "ChooserFunctionLibrary.h"
 #include "PoseSearch/PoseSearchLibrary.h"
 #include "AnimationWarpingLibrary.h"
+#include "Actors/GASPHeldObject.h"
 #include "BlendStack/BlendStackAnimNodeLibrary.h"
 #include "BoneControllers/AnimNode_FootPlacement.h"
-#include "Engine/AssetManager.h"
+#include "Interfaces/GASPHeldObjectInterface.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GASPAnimInstance)
 
+
 #if ALLOW_CONSOLE
-static IConsoleVariable* OffsetRootEnabledVar = IConsoleManager::Get().FindConsoleVariable(
+IConsoleVariable* OffsetRootEnabledVar = IConsoleManager::Get().FindConsoleVariable(
 	TEXT("a.animnode.offsetrootbone.enable"));
-static IConsoleVariable* MMLodVar = IConsoleManager::Get().FindConsoleVariable(TEXT("DDCvar.MMDatabaseLOD"));
-static IConsoleVariable* ExperimentalStateMachineVar = IConsoleManager::Get().FindConsoleVariable(
+IConsoleVariable* MMLodVar = IConsoleManager::Get().FindConsoleVariable(TEXT("DDCvar.MMDatabaseLOD"));
+IConsoleVariable* ExperimentalStateMachineVar = IConsoleManager::Get().FindConsoleVariable(
 	TEXT("DDCVar.ExperimentalStateMachine.Enable"));
 
 #endif
+
 
 void UGASPAnimInstance::OnLanded(const FHitResult& HitResult)
 {
@@ -33,10 +36,6 @@ void UGASPAnimInstance::OnLanded(const FHitResult& HitResult)
 	{
 		bLanded = false;
 	}), .3f, false);
-	// GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this]()
-	// {
-	// 	bLanded = false;
-	// }));
 }
 
 void UGASPAnimInstance::OnOverlayModeChanged(const FGameplayTag OldOverlayMode)
@@ -45,6 +44,7 @@ void UGASPAnimInstance::OnOverlayModeChanged(const FGameplayTag OldOverlayMode)
 	{
 		return;
 	}
+
 	OverlayMode = FGameplayTagContainer(CachedCharacter->GetOverlayMode());
 
 	USkeletalMeshComponent* Mesh = CachedCharacter->GetMesh();
@@ -55,9 +55,8 @@ void UGASPAnimInstance::OnOverlayModeChanged(const FGameplayTag OldOverlayMode)
 
 	const UGASPOverlayLayeringDataAsset* DataAsset{
 		static_cast<UGASPOverlayLayeringDataAsset*>(
-			UChooserFunctionLibrary::EvaluateChooser(
-				this, OverlayTable.LoadSynchronous() ? OverlayTable.Get() : nullptr,
-				UGASPOverlayLayeringDataAsset::StaticClass()))
+			UChooserFunctionLibrary::EvaluateChooser(this, OverlayTable.LoadSynchronous(),
+			                                         UGASPOverlayLayeringDataAsset::StaticClass()))
 	};
 
 	if (IsValid(DataAsset))
@@ -68,9 +67,9 @@ void UGASPAnimInstance::OnOverlayModeChanged(const FGameplayTag OldOverlayMode)
 
 EPoseSearchInterruptMode UGASPAnimInstance::GetMatchingInterruptMode() const
 {
-	return MovementMode != PreviousMovementMode || (MovementMode == ECMovementMode::OnGround && (MovementState !=
-		       PreviousMovementState || (Gait != PreviousGait && MovementState == EMovementState::Moving) || StanceMode
-		       != PreviousStanceMode))
+	return MovementMode != PreviousMovementMode || (MovementMode.HasTagExact(MovementModeTags::Grounded) && (
+		       MovementState != PreviousMovementState || (Gait != PreviousGait && MovementState ==
+			       EMovementState::Moving) || StanceMode != PreviousStanceMode))
 		       ? EPoseSearchInterruptMode::InterruptOnDatabaseChange
 		       : EPoseSearchInterruptMode::DoNotInterrupt;
 }
@@ -82,12 +81,12 @@ EOffsetRootBoneMode UGASPAnimInstance::GetOffsetRootRotationMode() const
 
 EOffsetRootBoneMode UGASPAnimInstance::GetOffsetRootTranslationMode() const
 {
-	if (IsSlotActive(AnimNames.AnimationSlotName) || MovementMode == ECMovementMode::InAir)
+	if (IsSlotActive(AnimNames.AnimationSlotName) || MovementMode.HasTagExact(MovementModeTags::InAir))
 	{
 		return EOffsetRootBoneMode::Release;
 	}
 
-	return MovementMode == ECMovementMode::OnGround && MovementState == EMovementState::Moving
+	return MovementMode.HasTagExact(MovementModeTags::Grounded) && MovementState == EMovementState::Moving
 		       ? EOffsetRootBoneMode::Interpolate
 		       : EOffsetRootBoneMode::Release;
 }
@@ -114,9 +113,71 @@ float UGASPAnimInstance::GetAOYaw() const
 	return RotationMode == ERotationMode::OrientToMovement ? 0.f : GetAOValue().X;
 }
 
+FTransform UGASPAnimInstance::GetEffectorTransform(const FName ObjectIKSocketName) const
+{
+	const auto* SkelMeshComp = GetSkelMeshComponent();
+	if (!SkelMeshComp || !CachedCharacter.IsValid())
+	{
+		return FTransform::Identity;
+	}
+
+	auto* Interface = static_cast<IGASPHeldObjectInterface*>(CachedCharacter.Get());
+	if (!Interface)
+	{
+		return FTransform::Identity;
+	}
+
+	auto* HeldObject = Interface->GetHeldObject();
+	if (!IsValid(HeldObject))
+	{
+		return FTransform::Identity;
+	}
+
+	const auto* HeldMeshComp = HeldObject->GetMesh();
+	if (!IsValid(HeldMeshComp) || !HeldMeshComp->DoesSocketExist(ObjectIKSocketName))
+	{
+		return FTransform::Identity;
+	}
+
+	FTransform ObjectTransform = HeldMeshComp->GetSocketTransform(ObjectIKSocketName);
+	ObjectTransform.SetTranslation(ObjectTransform.GetTranslation() + SocketOffset);
+	return ObjectTransform;
+}
+
+EMovementDirection UGASPAnimInstance::CalculateMovementDirection() const
+{
+	if (RotationMode == ERotationMode::OrientToMovement || Gait == EGait::Sprint)
+	{
+		return EMovementDirection::F;
+	}
+	if (CharacterInfo.Direction >= MovementDirectionThreshold.FL && CharacterInfo.Direction <=
+		MovementDirectionThreshold.FR)
+	{
+		return EMovementDirection::F;
+	}
+
+	if (CharacterInfo.Direction >= MovementDirectionThreshold.BL && CharacterInfo.Direction <=
+		MovementDirectionThreshold.FL)
+	{
+		return MovementDirectionBias == EMovementDirectionBias::LeftFootForward
+			       ? EMovementDirection::LL
+			       : EMovementDirection::LR;
+	}
+
+	if (CharacterInfo.Direction >= MovementDirectionThreshold.FR && CharacterInfo.Direction <=
+		MovementDirectionThreshold.BR)
+	{
+		return MovementDirectionBias == EMovementDirectionBias::RightFootForward
+			       ? EMovementDirection::RR
+			       : EMovementDirection::RL;
+	}
+
+	return EMovementDirection::B;
+}
+
 bool UGASPAnimInstance::IsEnableSteering() const
 {
-	return MovementState == EMovementState::Moving || MovementMode == ECMovementMode::InAir;
+	return MovementState == EMovementState::Moving || MovementMode.HasTagExact(MovementModeTags::InAir);
 }
 
 void UGASPAnimInstance::NativeBeginPlay()
@@ -151,8 +212,6 @@ void UGASPAnimInstance::NativeInitializeAnimation()
 	{
 		return;
 	}
-
-	CachedCharacter->OverlayModeChanged.AddUniqueDynamic(this, &ThisClass::OnOverlayModeChanged);
 	CachedCharacter->LandedDelegate.AddUniqueDynamic(this, &ThisClass::OnLanded);
 }
 
@@ -169,11 +228,16 @@ void UGASPAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 		return;
 	}
 
+	CachedCharacter->OverlayModeChanged.AddUniqueDynamic(this, &ThisClass::OnOverlayModeChanged);
+
 	Gait = CachedCharacter->GetGait();
 	StanceMode = CachedCharacter->GetStanceMode();
 	RotationMode = CachedCharacter->GetRotationMode();
 	MovementState = CachedCharacter->GetMovementState();
-	MovementMode = CachedCharacter->GetMovementMode();
+
+	// it's because UChooserTable can't work with FGameplayTag, maybe fixed in 5.6
+	MovementMode = FGameplayTagContainer(CachedCharacter->GetMovementMode());
+
 	LocomotionAction = CachedCharacter->GetLocomotionAction();
 
 	RefreshEssentialValues(DeltaSeconds);
@@ -280,50 +344,19 @@ void UGASPAnimInstance::RefreshMovementDirection(float DeltaSeconds)
 	CharacterInfo.Direction = FGASPMath::CalculateDirection(CharacterInfo.Velocity.GetSafeNormal(),
 	                                                        CharacterInfo.ActorTransform.Rotator());
 
-	if (RotationMode == ERotationMode::OrientToMovement || Gait == EGait::Sprint)
-	{
-		MovementDirection = EMovementDirection::F;
-		return;
-	}
-
 	MovementDirectionThreshold = GetMovementDirectionThresholds();
-
-	if (CharacterInfo.Direction >= MovementDirectionThreshold.FL && CharacterInfo.Direction <=
-		MovementDirectionThreshold.FR)
-	{
-		MovementDirection = EMovementDirection::F;
-		return;
-	}
-
-	if (CharacterInfo.Direction >= MovementDirectionThreshold.BL && CharacterInfo.Direction <=
-		MovementDirectionThreshold.FL)
-	{
-		MovementDirection = MovementDirectionBias == EMovementDirectionBias::LeftFootForward
-			                    ? EMovementDirection::LL
-			                    : EMovementDirection::LR;
-		return;
-	}
-
-	if (CharacterInfo.Direction >= MovementDirectionThreshold.FR && CharacterInfo.Direction <=
-		MovementDirectionThreshold.BR)
-	{
-		MovementDirection = MovementDirectionBias == EMovementDirectionBias::RightFootForward
-			                    ? EMovementDirection::RR
-			                    : EMovementDirection::RL;
-		return;
-	}
-
-	MovementDirection = EMovementDirection::B;
+	MovementDirection = FGASPMath::GetMovementDirection(CharacterInfo.Direction, 60.f, 5.f);
+	// MovementDirection = CalculateMovementDirection();
 }
 
 float UGASPAnimInstance::GetMatchingBlendTime() const
 {
-	if (MovementMode == ECMovementMode::InAir)
+	if (MovementMode.HasTagExact(MovementModeTags::InAir))
 	{
 		return GetLandVelocity() > 100.f ? .15f : .5f;
 	}
 
-	return PreviousMovementMode == ECMovementMode::OnGround ? .5f : .2f;
+	return PreviousMovementMode.HasTagExact(MovementModeTags::Grounded) ? .5f : .2f;
 }
 
 FFootPlacementPlantSettings UGASPAnimInstance::GetPlantSettings() const
@@ -473,13 +506,15 @@ float UGASPAnimInstance::GetLandVelocity() const
 
 bool UGASPAnimInstance::PlayLand() const
 {
-	return MovementMode == ECMovementMode::OnGround && PreviousMovementMode == ECMovementMode::InAir;
+	return MovementMode.HasTagExact(MovementModeTags::Grounded) && PreviousMovementMode.HasTagExact(
+		MovementModeTags::InAir);
 }
 
 bool UGASPAnimInstance::PlayMovingLand() const
 {
-	return MovementMode == ECMovementMode::OnGround && PreviousMovementMode == ECMovementMode::InAir && FMath::Abs(
-		GetTrajectoryTurnAngle()) <= 120.f;
+	return MovementMode.HasTagExact(MovementModeTags::Grounded) && PreviousMovementMode.HasTagExact(
+			MovementModeTags::InAir) &&
+		FMath::Abs(GetTrajectoryTurnAngle()) <= 120.f;
 }
 
 float UGASPAnimInstance::GetTrajectoryTurnAngle() const
@@ -545,7 +580,7 @@ void UGASPAnimInstance::RefreshMotionMatchingMovement(const FAnimUpdateContext& 
 	}
 
 	const auto Objects{
-		UChooserFunctionLibrary::EvaluateChooserMulti(this, LocomotionTable.LoadSynchronous(),
+		UChooserFunctionLibrary::EvaluateChooserMulti(this, LocomotionTable,
 		                                              UPoseSearchDatabase::StaticClass())
 	};
 	TArray<UPoseSearchDatabase*> Databases{};
@@ -598,8 +633,8 @@ void UGASPAnimInstance::RefreshOffsetRoot(const FAnimUpdateContext& Context, con
 
 FQuat UGASPAnimInstance::GetDesiredFacing() const
 {
-	const FQuat DesiredFacing = FQuat(TargetRotation);
-	const FQuat Offset = FQuat({0.f, -90.f, 0.f});
+	const auto DesiredFacing = FQuat(TargetRotation);
+	const auto Offset = FQuat({0.f, -90.f, 0.f});
 	return DesiredFacing * Offset;
 }
 
@@ -608,11 +643,11 @@ void UGASPAnimInstance::RefreshBlendStack(const FAnimUpdateContext& Context, con
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UGASPAnimInstance::RefreshBlendStack"),
 	                            STAT_UGASPAnimInstance_RefreshBlendStack, STATGROUP_GASP)
 	TRACE_CPUPROFILER_EVENT_SCOPE(__FUNCTION__);
-	
+
 	BlendStack.AnimTime = UBlendStackAnimNodeLibrary::GetCurrentBlendStackAnimAssetTime(Node);
 	BlendStack.AnimAsset = UBlendStackAnimNodeLibrary::GetCurrentBlendStackAnimAsset(Node);
 	BlendStack.PlayRate = GetDynamicPlayRate(Node);
-	const UAnimSequence* NewAnimSequence{Cast<UAnimSequence>(BlendStack.AnimAsset)};
+	const UAnimSequence* NewAnimSequence{static_cast<UAnimSequence*>(BlendStack.AnimAsset.Get())};
 	if (!NewAnimSequence)
 	{
 		return;
@@ -625,7 +660,7 @@ void UGASPAnimInstance::RefreshBlendStack(const FAnimUpdateContext& Context, con
 void UGASPAnimInstance::RefreshBlendStackMachine(const FAnimUpdateContext& Context, const FAnimNodeReference& Node)
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UGASPAnimInstance::RefreshBlendStackMachine"),
-							STAT_UGASPAnimInstance_RefreshBlendStackMachine, STATGROUP_GASP)
+	                            STAT_UGASPAnimInstance_RefreshBlendStackMachine, STATGROUP_GASP)
 	TRACE_CPUPROFILER_EVENT_SCOPE(__FUNCTION__);
 
 	EAnimNodeReferenceConversionResult Result{};
@@ -764,7 +799,7 @@ void UGASPAnimInstance::SetBlendStackAnimFromChooser(const FAnimNodeReference& N
 
 	const auto Objects{
 		UChooserFunctionLibrary::EvaluateObjectChooserBaseMulti(
-			Context, UChooserFunctionLibrary::MakeEvaluateChooser(StateMachineTable.LoadSynchronous()),
+			Context, UChooserFunctionLibrary::MakeEvaluateChooser(StateMachineTable),
 			UAnimationAsset::StaticClass())
 	};
 
@@ -775,7 +810,7 @@ void UGASPAnimInstance::SetBlendStackAnimFromChooser(const FAnimNodeReference& N
 	}
 
 	// Update blend stack inputs
-	BlendStackInputs.AnimationAsset = Cast<UAnimationAsset>(Objects[0]);
+	BlendStackInputs.AnimationAsset = static_cast<UAnimationAsset*>(Objects[0]);
 	UpdateAnimationLoopingFlag(BlendStackInputs);
 	BlendStackInputs.StartTime = ChooserOutputs.StartTime;
 	BlendStackInputs.BlendTime = ChooserOutputs.BlendTime;
@@ -790,7 +825,7 @@ void UGASPAnimInstance::SetBlendStackAnimFromChooser(const FAnimNodeReference& N
 
 		SearchCost = PoseSearchResult.SearchCost;
 
-		UAnimationAsset* AnimationAsset = static_cast<UAnimationAsset*>(PoseSearchResult.SelectedAnimation);
+		auto AnimationAsset = static_cast<UAnimationAsset*>(PoseSearchResult.SelectedAnimation);
 
 		const bool NoValidAnim = ChooserOutputs.MMCostLimit > 0.f
 			                         ? PoseSearchResult.SearchCost <= ChooserOutputs.MMCostLimit
@@ -834,7 +869,7 @@ float UGASPAnimInstance::GetDynamicPlayRate(const FAnimNodeReference& Node) cons
 	static const FName MinDynamicPlayRateCurveName = TEXT("MinDynamicPlayRate");
 
 	const UAnimSequence* AnimSequence{
-		Cast<UAnimSequence>(UBlendStackAnimNodeLibrary::GetCurrentBlendStackAnimAsset(Node))
+		static_cast<UAnimSequence*>(UBlendStackAnimNodeLibrary::GetCurrentBlendStackAnimAsset(Node))
 	};
 	if (!IsValid(AnimSequence))
 	{
@@ -958,7 +993,7 @@ float UGASPAnimInstance::GetStrafeYawRotationOffset() const
 	{
 		return 0.f;
 	}
-	
+
 	static const TMap<EMovementDirection, FName> CurveNames = {
 		{EMovementDirection::B, TEXT("StrafeOffset_B")},
 		{EMovementDirection::LL, TEXT("StrafeOffset_LL")},

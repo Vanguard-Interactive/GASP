@@ -160,7 +160,6 @@ class GASP_API UGASPTraversalComponent : public UActorComponent
 	GENERATED_BODY()
 
 	/** Timer handle for ending traversal actions */
-	UPROPERTY(VisibleAnywhere, Category="Traversal")
 	FTimerHandle TraversalEndHandle;
 
 	/** Manager for asynchronous loading of assets */
@@ -339,6 +338,7 @@ public:
 	 */
 	FCollisionQueryParams GetQueryParams() const;
 
+	UFUNCTION(BlueprintCallable, Category="Traversal")
 	bool CompareTag(TArray<FName> TagsToCompare, const FGameplayTag& RootTag) const;
 	/**
 	 * Attempts to perform a traversal action based on input parameters

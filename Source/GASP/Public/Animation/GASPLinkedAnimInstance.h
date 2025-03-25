@@ -40,7 +40,7 @@ public:
 	EMovementState GetMovementState() const;
 
 	UFUNCTION(BlueprintGetter, meta = (BlueprintThreadSafe))
-	ECMovementMode GetMovementMode() const;
+	FGameplayTag GetMovementMode() const;
 
 	UFUNCTION(BlueprintGetter, meta = (BlueprintThreadSafe))
 	EStanceMode GetStanceMode() const;

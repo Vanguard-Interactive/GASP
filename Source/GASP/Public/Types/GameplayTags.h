@@ -4,6 +4,11 @@
 
 #include "NativeGameplayTags.h"
 
+namespace MovementModeTags
+{
+	GASP_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Grounded);
+	GASP_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(InAir);
+}
 
 namespace OverlayModeTags
 {
@@ -44,4 +49,10 @@ namespace FoleyTags
 	GASP_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Handplant);
 	GASP_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(ScuffWall);
 	GASP_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Tumble);
+}
+
+namespace StanceTags
+{
+	GASP_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Standing);
+	GASP_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Crouching);
 }

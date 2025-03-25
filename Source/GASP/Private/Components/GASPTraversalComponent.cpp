@@ -13,7 +13,6 @@
 #include "Net/UnrealNetwork.h"
 #include "PlayMontageCallbackProxy.h"
 #include "Engine/AssetManager.h"
-#include "Interfaces/GASPTraversableObstacleInterface.h"
 #include "PoseSearch/PoseSearchLibrary.h"
 #include "PoseSearch/PoseSearchResult.h"
 
@@ -28,9 +27,9 @@ namespace
 	const FName NAME_PoseHistory{TEXT("PoseHistory")};
 
 #if WITH_EDITOR && ALLOW_CONSOLE
-	static IConsoleVariable* DrawDebugLevelVar = IConsoleManager::Get().FindConsoleVariable(
+	IConsoleVariable* DrawDebugLevelVar = IConsoleManager::Get().FindConsoleVariable(
 		TEXT("DDCvar.Traversal.DrawDebugLevel"));
-	static IConsoleVariable* DrawDebugDurationVar = IConsoleManager::Get().FindConsoleVariable(
+	IConsoleVariable* DrawDebugDurationVar = IConsoleManager::Get().FindConsoleVariable(
 		TEXT("DDCvar.Traversal.DrawDebugDuration"));
 #endif
 }
@@ -204,8 +203,15 @@ FTraversalResult UGASPTraversalComponent::TryTraversalAction(FTraversalCheckInpu
 
 	NewTraversalCheckResult.HitComponent = Hit.GetComponent();
 
-	TArray<FName> TagsToCompare{Hit.GetActor()->Tags};
+	TArray<FName> TagsToCompare;
 
+	if (IsValid(Hit.GetActor()))
+	{
+		Algo::Transform(Hit.GetActor()->Tags, TagsToCompare, [&](const FName& Tag)
+		{
+			return Tag;
+		});
+	}
 	if (IsValid(NewTraversalCheckResult.HitComponent))
 	{
 		TagsToCompare.Append(Hit.GetComponent()->ComponentTags);
@@ -497,6 +503,7 @@ void UGASPTraversalComponent::PerformTraversalAction_Implementation()
 
 	MontageProxy->OnCompleted.AddUniqueDynamic(this, &ThisClass::OnCompleteTraversal);
 	MontageProxy->OnInterrupted.AddUniqueDynamic(this, &ThisClass::OnCompleteTraversal);
+	MontageProxy->OnBlendOut.AddUniqueDynamic(this, &ThisClass::OnCompleteTraversal);
 
 	bDoingTraversalAction = true;
 	CapsuleComponent->IgnoreComponentWhenMoving(TraversalCheckResult.HitComponent, true);

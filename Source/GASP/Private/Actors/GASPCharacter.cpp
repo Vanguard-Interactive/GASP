@@ -39,10 +39,7 @@ void AGASPCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (!IsValid(MovementComponent))
-	{
-		return;
-	}
+	check(MovementComponent)
 
 	SetGait(DesiredGait, true);
 	SetRotationMode(RotationMode, true);
@@ -58,12 +55,15 @@ void AGASPCharacter::BeginPlay()
 void AGASPCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
+
+	OnCharacterMovementUpdated.RemoveAll(this);
+	GetWorld()->GetTimerManager().ClearAllTimersForObject(this);
 }
 
 // Called every frame
 void AGASPCharacter::Tick(float DeltaTime)
 {
-	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("AGASPCharacterTick"),
+	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("AGASPCharacter::Tick"),
 	                            STAT_AGASPCharacter_Tick, STATGROUP_GASP)
 	TRACE_CPUPROFILER_EVENT_SCOPE(__FUNCTION__);
 
@@ -74,7 +74,7 @@ void AGASPCharacter::Tick(float DeltaTime)
 		SetReplicatedAcceleration(MovementComponent->GetCurrentAcceleration());
 	}
 
-	const bool IsMoving = !MovementComponent->Velocity.IsNearlyZero(.1f) && !ReplicatedAcceleration.IsZero();
+	const bool IsMoving = !MovementComponent->Velocity.IsNearlyZero(.1f) && !ReplicatedAcceleration.IsNearlyZero(10.f);
 	SetMovementState(IsMoving ? EMovementState::Moving : EMovementState::Idle);
 
 	if (LocomotionAction == LocomotionActionTags::Ragdoll)
@@ -82,7 +82,7 @@ void AGASPCharacter::Tick(float DeltaTime)
 		RefreshRagdolling(DeltaTime);
 	}
 
-	if (MovementMode == ECMovementMode::OnGround)
+	if (MovementMode == MovementModeTags::Grounded)
 	{
 		if (StanceMode != EStanceMode::Crouch)
 		{
@@ -155,11 +155,15 @@ void AGASPCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8
 
 	if (MovementComponent->IsMovingOnGround())
 	{
-		SetMovementMode(ECMovementMode::OnGround);
+		SetMovementMode(MovementModeTags::Grounded);
 	}
 	else if (MovementComponent->IsFalling())
 	{
-		SetMovementMode(ECMovementMode::InAir);
+		SetMovementMode(MovementModeTags::InAir);
+	}
+	else if (MovementComponent == MOVE_None)
+	{
+		SetMovementMode(FGameplayTag::EmptyTag);
 	}
 }
 
@@ -182,11 +186,6 @@ void AGASPCharacter::SetGait(const EGait NewGait, const bool bForce)
 
 void AGASPCharacter::SetDesiredGait(EGait NewGait, bool bForce)
 {
-	if (!ensure(MovementComponent))
-	{
-		return;
-	}
-
 	if (NewGait != Gait || bForce)
 	{
 		DesiredGait = NewGait;
@@ -201,11 +200,6 @@ void AGASPCharacter::SetDesiredGait(EGait NewGait, bool bForce)
 
 void AGASPCharacter::SetRotationMode(const ERotationMode NewRotationMode, const bool bForce)
 {
-	if (!ensure(MovementComponent))
-	{
-		return;
-	}
-
 	if (NewRotationMode != RotationMode || bForce)
 	{
 		const auto& OldRotationMode{RotationMode};
@@ -223,26 +217,23 @@ void AGASPCharacter::SetRotationMode(const ERotationMode NewRotationMode, const 
 	}
 }
 
-void AGASPCharacter::SetMovementMode(const ECMovementMode NewMovementMode, const bool bForce)
+void AGASPCharacter::SetMovementMode(const FGameplayTag NewMovementMode, const bool bForce)
 {
-	if (!ensure(MovementComponent))
-	{
-		return;
-	}
-
 	if (NewMovementMode != MovementMode || bForce)
 	{
+		auto OldMovementMode{MovementMode};
 		MovementMode = NewMovementMode;
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, MovementMode, this);
 		if (GetLocalRole() == ROLE_AutonomousProxy && IsValid(GetNetConnection()))
-
 		{
 			Server_SetMovementMode(NewMovementMode);
 		}
+
+		MovementModeChanged.Broadcast(MovementMode);
 	}
 }
 
-void AGASPCharacter::Server_SetMovementMode_Implementation(const ECMovementMode NewMovementMode)
+void AGASPCharacter::Server_SetMovementMode_Implementation(const FGameplayTag NewMovementMode)
 {
 	SetMovementMode(NewMovementMode);
 }
@@ -278,15 +269,13 @@ void AGASPCharacter::SetMovementState(const EMovementState NewMovementState, con
 	}
 }
 
-void AGASPCharacter::SetStanceMode(EStanceMode NewStanceMode, bool bForce)
+void AGASPCharacter::SetStanceMode(const EStanceMode NewStanceMode, const bool bForce)
 {
 	if (StanceMode != NewStanceMode || bForce)
 	{
 		const auto& OldStanceMode{StanceMode};
 		StanceMode = NewStanceMode;
 		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, StanceMode, this);
-
-		UE_LOG(LogTemp, Warning, TEXT("Crouch"))
 
 		if (GetLocalRole() == ROLE_AutonomousProxy && IsValid(GetNetConnection()))
 		{
@@ -314,12 +303,13 @@ void AGASPCharacter::MoveAction(const FVector2D& Value)
 	}
 
 	const FRotator Rotation = GetControlRotation();
-	const FRotator YawRotation = FRotator(0.f, Rotation.Yaw, 0.f);
+	const auto YawRotation = FRotator(0.f, Rotation.Yaw, 0.f);
 	const FVector ForwardDirectionDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 	const FVector RightDirectionDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
-	AddMovementInput(ForwardDirectionDirection, Value.X);
-	AddMovementInput(RightDirectionDirection, Value.Y);
+	const FVector2D MovementInputScale = GetMovementInputScaleValue(Value);
+	AddMovementInput(ForwardDirectionDirection, MovementInputScale.X);
+	AddMovementInput(RightDirectionDirection, MovementInputScale.Y);
 }
 
 void AGASPCharacter::LookAction(const FVector2D& Value)
@@ -339,13 +329,31 @@ bool AGASPCharacter::CanSprint()
 		return false;
 	}
 
-	const FVector Acceleration{MovementComponent->GetCurrentAcceleration()};
+	const FVector ViewDirection{GetActorForwardVector()};
 
-	FRotator DeltaRot = GetActorRotation() - FRotationMatrix::MakeFromX(Acceleration).Rotator();
-	DeltaRot.Normalize();
+	const float Dot = FVector::DotProduct(ReplicatedAcceleration.GetSafeNormal2D(), ViewDirection.GetSafeNormal2D());
 
-	return FMath::Abs(DeltaRot.Yaw) < 50.f;
+	return Dot > FMath::Cos(FMath::DegreesToRadians(50.f));
 }
+
+// bool AGASPCharacter::CanSprint()
+// {
+// 	if (RotationMode == ERotationMode::OrientToMovement)
+// 	{
+// 		return true;
+// 	}
+// 	if (RotationMode == ERotationMode::Aim)
+// 	{
+// 		return false;
+// 	}
+//
+// 	const FVector Acceleration{ReplicatedAcceleration};
+//
+// 	FRotator DeltaRot = GetActorRotation() - FRotationMatrix::MakeFromX(Acceleration).Rotator();
+// 	DeltaRot.Normalize();
+//
+// 	return FMath::Abs(DeltaRot.Yaw) < 50.f;
+// }
 
 UGASPCharacterMovementComponent* AGASPCharacter::GetBCharacterMovement() const
 {
@@ -368,7 +376,7 @@ void AGASPCharacter::SetOverlayMode(const FGameplayTag NewOverlayMode, const boo
 	}
 }
 
-void AGASPCharacter::SetLocomotionAction(FGameplayTag NewLocomotionAction, bool bForce)
+void AGASPCharacter::SetLocomotionAction(const FGameplayTag NewLocomotionAction, const bool bForce)
 {
 	if (NewLocomotionAction != LocomotionAction || bForce)
 	{
@@ -394,7 +402,7 @@ void AGASPCharacter::Server_SetOverlayMode_Implementation(const FGameplayTag New
 	SetOverlayMode(NewOverlayMode);
 }
 
-void AGASPCharacter::SetReplicatedAcceleration(FVector NewAcceleration)
+void AGASPCharacter::SetReplicatedAcceleration(const FVector& NewAcceleration)
 {
 	COMPARE_ASSIGN_AND_MARK_PROPERTY_DIRTY(ThisClass, ReplicatedAcceleration, NewAcceleration, this);
 }
@@ -413,50 +421,80 @@ void AGASPCharacter::OnJumped_Implementation()
 	Super::OnJumped_Implementation();
 
 	const float VolumeMultiplier = FMath::GetMappedRangeValueClamped<float, float>(
-		{-500.f, -900.f}, {.5f, 1.5f}, GetVelocity().Size2D());
+		{0.f, 500.f}, {.2f, 1.5f}, GetVelocity().Size2D());
 	PlayAudioEvent(FoleyJumpTag, VolumeMultiplier);
+}
+
+void AGASPCharacter::Landed(const FHitResult& Hit)
+{
+	Super::Landed(Hit);
+
+	const float VolumeMultiplier = FMath::GetMappedRangeValueClamped<float, float>(
+		{-500.f, -900.f}, {.0f, 1.5f}, GetVelocity().Z);
+	PlayAudioEvent(FoleyLandTag, VolumeMultiplier);
+}
+
+bool AGASPCharacter::HasFullMovementInput() const
+{
+	if (MovementStickMode == EAnalogStickBehaviorMode::FixedWalkRun)
+	{
+		return GetPendingMovementInputVector().Size2D() >= AnalogMovementThreshold;
+	}
+	if (MovementStickMode == EAnalogStickBehaviorMode::VariableWalkRun)
+	{
+		return GetLastMovementInputVector().Size2D() >= AnalogMovementThreshold;
+	}
+
+	return true;
+}
+
+FVector2D AGASPCharacter::GetMovementInputScaleValue(const FVector2D InVector) const
+{
+	return MovementStickMode > EAnalogStickBehaviorMode::FixedWalkRun ? InVector : InVector.GetSafeNormal();
 }
 
 void AGASPCharacter::RefreshGait()
 {
-	if (DesiredGait == EGait::Sprint)
+	EGait NewGait;
+
+	if (DesiredGait == EGait::Sprint && CanSprint())
 	{
-		if (CanSprint())
-		{
-			SetGait(EGait::Sprint);
-			return;
-		}
-		SetGait(EGait::Run);
-		return;
+		NewGait = HasFullMovementInput() ? EGait::Sprint : EGait::Run;
+	}
+	else if (DesiredGait == EGait::Walk)
+	{
+		NewGait = EGait::Walk;
+	}
+	else
+	{
+		NewGait = HasFullMovementInput() ? EGait::Run : EGait::Walk;
 	}
 
-	SetGait(DesiredGait);
+	SetGait(NewGait);
 }
 
 void AGASPCharacter::OnMovementUpdateSimulatedProxy_Implementation(float DeltaSeconds, FVector OldLocation,
-                                                                   FVector OldVelocity)
+                                                                   const FVector OldVelocity)
 {
 	if (MovementMode != PreviousMovementMode)
 	{
-		float VolumeMultiplier;
-		switch (MovementMode)
+		if (float VolumeMultiplier; MovementMode == MovementModeTags::Grounded)
 		{
-		case ECMovementMode::OnGround:
 			VolumeMultiplier = FMath::GetMappedRangeValueClamped<float, float>(
-				{-500.f, -900.f}, {.0f, 1.5f}, OldVelocity.Z);
+				{-500.f, -900.f}, {.2f, 1.5f}, OldVelocity.Z);
 			PlayAudioEvent(FoleyJumpTag, VolumeMultiplier);
-			break;
-		default:
+		}
+		else if (MovementMode == MovementModeTags::InAir)
+		{
 			VolumeMultiplier = FMath::GetMappedRangeValueClamped<float, float>(
-				{.0f, 500.f}, {.0f, 1.f}, OldVelocity.Size2D());
+				{.0f, 500.f}, {.2f, 1.f}, OldVelocity.Size2D());
 			PlayAudioEvent(FoleyLandTag, VolumeMultiplier);
-			break;
 		}
 	}
 	PreviousMovementMode = MovementMode;
 }
 
-FTraversalResult AGASPCharacter::TryTraversalAction()
+FTraversalResult AGASPCharacter::TryTraversalAction() const
 {
 	if (IsValid(TraversalComponent))
 	{
@@ -474,7 +512,7 @@ bool AGASPCharacter::IsDoingTraversal() const
 FTraversalCheckInputs AGASPCharacter::GetTraversalCheckInputs() const
 {
 	const FVector ForwardVector{GetActorForwardVector()};
-	if (MovementMode == ECMovementMode::InAir)
+	if (MovementMode == MovementModeTags::InAir)
 	{
 		return {
 			ForwardVector, 75.f, FVector::ZeroVector,

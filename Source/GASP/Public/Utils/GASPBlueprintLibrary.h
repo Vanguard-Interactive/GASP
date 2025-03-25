@@ -9,8 +9,8 @@
 /**
  * 
  */
-UCLASS()
-class GASP_API UGASPBlueprintLibrary : public UBlueprintFunctionLibrary
+UCLASS(MinimalApi)
+class UGASPBlueprintLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 

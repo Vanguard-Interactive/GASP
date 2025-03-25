@@ -20,6 +20,9 @@ struct FCameraProperties
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EStanceMode StanceMode{0};
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EViewMode ViewMode{0};
 };
 
 /**

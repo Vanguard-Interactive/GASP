@@ -37,20 +37,9 @@ enum class EGait : uint8
 UENUM(BlueprintType, meta = (ScriptName = "ERotationMode"))
 enum class ERotationMode : uint8
 {
-	None,
 	OrientToMovement,
 	Strafe,
 	Aim
-};
-
-/**
- *
- */
-UENUM(BlueprintType, meta = (ScriptName = "ECMovementMode"))
-enum class ECMovementMode : uint8
-{
-	OnGround,
-	InAir
 };
 
 /**
@@ -148,4 +137,28 @@ enum class ECameraStyle : uint8
 	Far,
 	Balanced,
 	Close
+};
+
+UENUM(BlueprintType, meta = (ScriptName = "EViewMode"))
+enum class EViewMode : uint8
+{
+	FirstPerson,
+	ThirdPerson
+};
+
+
+UENUM(BlueprintType, meta = (ScriptName = "EAnalogStickBehaviorMode"))
+enum class EAnalogStickBehaviorMode : uint8
+{
+	FixedSingleGait UMETA(DisplayName = "Fixed Speed - Single Gait",
+	                      Description = "Character will move at a fixed speed regardless of stick deflection."),
+	FixedWalkRun UMETA(DisplayName = "Fixed Speed - Walk / Run",
+	                   Description =
+	                   "Character will move at a fixed walking speed with slight stick deflection, and a fixed running speed at full stick deflection."),
+	VariableSingleGait UMETA(DisplayName = "Variable Speed - Single Gait",
+	                         Description =
+	                         "Full analog movement control with stick, character will remain walking or running based on gait input."),
+	VariableWalkRun UMETA(DisplayName = "Variable Speed - Walk / Run",
+	                      Description =
+	                      "Full analog movement control with stick, character will switch from walk to run gait based on stick deflection."),
 };

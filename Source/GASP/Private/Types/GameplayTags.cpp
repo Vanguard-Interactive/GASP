@@ -4,6 +4,12 @@
 #include "Types/GameplayTags.h"
 
 
+namespace MovementModeTags
+{
+	UE_DEFINE_GAMEPLAY_TAG(Grounded, FName{TEXTVIEW("GASP.MovementMode.OnGrounded")});
+	UE_DEFINE_GAMEPLAY_TAG(InAir, FName{TEXTVIEW("GASP.MovementMode.InAir")});
+}
+
 namespace OverlayModeTags
 {
 	UE_DEFINE_GAMEPLAY_TAG(Default, FName{TEXTVIEW("GASP.OverlayMode.Default")})
@@ -43,4 +49,11 @@ namespace FoleyTags
 	UE_DEFINE_GAMEPLAY_TAG(Land, FName{TEXTVIEW("Foley.Event.Land")})
 	UE_DEFINE_GAMEPLAY_TAG(ScuffWall, FName{TEXTVIEW("Foley.Event.ScuffWall")})
 	UE_DEFINE_GAMEPLAY_TAG(Tumble, FName{TEXTVIEW("Foley.Event.Tumble")})
+}
+
+
+namespace StanceTags
+{
+	UE_DEFINE_GAMEPLAY_TAG(Standing, FName{TEXTVIEW("GASP.Stance.Standing")})
+	UE_DEFINE_GAMEPLAY_TAG(Crouching, FName{TEXTVIEW("GASP.Stance.Crouching")})
 }
