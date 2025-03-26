@@ -478,14 +478,9 @@ void UGASPTraversalComponent::OnCompleteTraversal(FName NotifyName)
 			: MOVE_Walking
 	};
 	MovementComponent->SetMovementMode(MovementMode);
-
 	GetWorld()->GetTimerManager().SetTimer(TraversalEndHandle, [&, this]()
 	{
 		OnTraversalEnd();
-		if (MovementMode == MOVE_None)
-		{
-			MovementComponent->SetMovementMode(MOVE_Falling);
-		}
 	}, IgnoreCorrectionDelay, false);
 }
 

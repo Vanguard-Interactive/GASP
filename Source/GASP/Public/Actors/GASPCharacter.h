@@ -60,7 +60,7 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Transient)
 	EGait Gait{EGait::Run};
-	UPROPERTY(BlueprintReadOnly, Replicated, Transient)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Transient)
 	ERotationMode RotationMode{ERotationMode::Strafe};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Transient)
 	EMovementState MovementState{EMovementState::Idle};

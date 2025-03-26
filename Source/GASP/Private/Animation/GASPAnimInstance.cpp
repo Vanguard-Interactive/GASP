@@ -40,8 +40,9 @@ void UGASPAnimInstance::OnLanded(const FHitResult& HitResult)
 
 void UGASPAnimInstance::OnOverlayModeChanged(const FGameplayTag OldOverlayMode)
 {
-	if (!CachedCharacter.IsValid())
+	if (!OverlayTable.IsValid())
 	{
+		UE_LOG(LogTemp, Warning, TEXT("cannot change overlay"))
 		return;
 	}
 
@@ -52,7 +53,6 @@ void UGASPAnimInstance::OnOverlayModeChanged(const FGameplayTag OldOverlayMode)
 	{
 		return;
 	}
-
 	const UGASPOverlayLayeringDataAsset* DataAsset{
 		static_cast<UGASPOverlayLayeringDataAsset*>(
 			UChooserFunctionLibrary::EvaluateChooser(this, OverlayTable.LoadSynchronous(),
@@ -61,6 +61,9 @@ void UGASPAnimInstance::OnOverlayModeChanged(const FGameplayTag OldOverlayMode)
 
 	if (IsValid(DataAsset))
 	{
+		UE_LOG(LogTemp, Warning, TEXT("OverlayTable is valid"))
+		RightHandOffset = DataAsset->GetRightHandCorrection();
+		LeftHandOffset = DataAsset->GetLeftHandCorrection();
 		Mesh->LinkAnimClassLayers(DataAsset->GetOverlayAnimInstance());
 	}
 }
@@ -113,7 +116,8 @@ float UGASPAnimInstance::GetAOYaw() const
 	return RotationMode == ERotationMode::OrientToMovement ? 0.f : GetAOValue().X;
 }
 
-FTransform UGASPAnimInstance::GetEffectorTransform(const FName ObjectIKSocketName) const
+FTransform UGASPAnimInstance::GetHandIKTransform(const FName HandIKSocketName, const FName ObjectIKSocketName,
+                                                 const FVector& SocketOffset) const
 {
 	const auto* SkelMeshComp = GetSkelMeshComponent();
 	if (!SkelMeshComp || !CachedCharacter.IsValid())
@@ -121,58 +125,28 @@ FTransform UGASPAnimInstance::GetEffectorTransform(const FName ObjectIKSocketNam
 		return FTransform::Identity;
 	}
 
+	const FTransform SocketTransform = SkelMeshComp->GetSocketTransform(HandIKSocketName);
 	auto* Interface = static_cast<IGASPHeldObjectInterface*>(CachedCharacter.Get());
 	if (!Interface)
 	{
-		return FTransform::Identity;
+		return SocketTransform;
 	}
 
 	auto* HeldObject = Interface->GetHeldObject();
 	if (!IsValid(HeldObject))
 	{
-		return FTransform::Identity;
+		return SocketTransform;
 	}
 
 	const auto* HeldMeshComp = HeldObject->GetMesh();
 	if (!IsValid(HeldMeshComp) || !HeldMeshComp->DoesSocketExist(ObjectIKSocketName))
 	{
-		return FTransform::Identity;
+		return SocketTransform;
 	}
 
-	FTransform ObjectTransform = HeldMeshComp->GetSocketTransform(ObjectIKSocketName);
-	ObjectTransform.SetTranslation(ObjectTransform.GetTranslation() + SocketOffset);
-	return ObjectTransform;
-}
+	const FTransform ObjectTransform = HeldMeshComp->GetSocketTransform(ObjectIKSocketName);
 
-EMovementDirection UGASPAnimInstance::CalculateMovementDirection() const
-{
-	if (RotationMode == ERotationMode::OrientToMovement || Gait == EGait::Sprint)
-	{
-		return EMovementDirection::F;
-	}
-	if (CharacterInfo.Direction >= MovementDirectionThreshold.FL && CharacterInfo.Direction <=
-		MovementDirectionThreshold.FR)
-	{
-		return EMovementDirection::F;
-	}
-
-	if (CharacterInfo.Direction >= MovementDirectionThreshold.BL && CharacterInfo.Direction <=
-		MovementDirectionThreshold.FL)
-	{
-		return MovementDirectionBias == EMovementDirectionBias::LeftFootForward
-			       ? EMovementDirection::LL
-			       : EMovementDirection::LR;
-	}
-
-	if (CharacterInfo.Direction >= MovementDirectionThreshold.FR && CharacterInfo.Direction <=
-		MovementDirectionThreshold.BR)
-	{
-		return MovementDirectionBias == EMovementDirectionBias::RightFootForward
-			       ? EMovementDirection::RR
-			       : EMovementDirection::RL;
-	}
-
-	return EMovementDirection::B;
+	return ObjectTransform * FTransform(SocketOffset);
 }
 
 bool UGASPAnimInstance::IsEnableSteering() const
@@ -213,6 +187,14 @@ void UGASPAnimInstance::NativeInitializeAnimation()
 		return;
 	}
 	CachedCharacter->LandedDelegate.AddUniqueDynamic(this, &ThisClass::OnLanded);
+
+	StreamableHandle = StreamableManager.RequestAsyncLoad(OverlayTable.ToSoftObjectPath(),
+	                                                      FStreamableDelegate::CreateWeakLambda(
+		                                                      this, [this]()
+		                                                      {
+			                                                      StreamableHandle.Reset();
+		                                                      }),
+	                                                      FStreamableManager::AsyncLoadHighPriority, false);
 }
 
 void UGASPAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
@@ -344,9 +326,7 @@ void UGASPAnimInstance::RefreshMovementDirection(float DeltaSeconds)
 	CharacterInfo.Direction = FGASPMath::CalculateDirection(CharacterInfo.Velocity.GetSafeNormal(),
 	                                                        CharacterInfo.ActorTransform.Rotator());
 
-	MovementDirectionThreshold = GetMovementDirectionThresholds();
 	MovementDirection = FGASPMath::GetMovementDirection(CharacterInfo.Direction, 60.f, 5.f);
-	// MovementDirection = CalculateMovementDirection();
 }
 
 float UGASPAnimInstance::GetMatchingBlendTime() const
@@ -378,29 +358,6 @@ float UGASPAnimInstance::GetMatchingNotifyRecencyTimeOut() const
 	static constexpr float RecencyTimeOuts[]{.2f, .2f, .16f};
 
 	return Gait >= EGait::Walk && Gait <= EGait::Sprint ? RecencyTimeOuts[static_cast<int32>(Gait)] : .2f;
-}
-
-FMovementDirectionThreshold UGASPAnimInstance::GetMovementDirectionThresholds() const
-{
-	switch (MovementDirection)
-	{
-	case EMovementDirection::F:
-	case EMovementDirection::B:
-		return FMovementDirectionThreshold(-60.f, 60.f, -120.f, 120.f);
-	case EMovementDirection::LL:
-	case EMovementDirection::LR:
-	case EMovementDirection::RL:
-	case EMovementDirection::RR:
-		if (IsPivoting())
-		{
-			return FMovementDirectionThreshold(-60.f, 60.f, -120.f, 120.f);
-		}
-		return BlendStackInputs.bLoop && RotationMode != ERotationMode::Aim
-			       ? FMovementDirectionThreshold(-60.f, 60.f, -140.f, 140.f)
-			       : FMovementDirectionThreshold(-40.f, 40.f, -140.f, 140.f);
-	default:
-		return FMovementDirectionThreshold(-60.f, 60.f, -120.f, 120.f);
-	}
 }
 
 FPoseSnapshot& UGASPAnimInstance::SnapshotFinalRagdollPose()
@@ -734,12 +691,8 @@ FVector2D UGASPAnimInstance::GetAOValue() const
 	const FRotator RootRot = CharacterInfo.RootTransform.Rotator();
 	FRotator DeltaRot = (ControlRot - RootRot).GetNormalized();
 
-	const float RotationMultiplier = RotationMode == ERotationMode::Aim ? 1.f : 0.5f;
-	DeltaRot.Yaw *= RotationMultiplier;
-	DeltaRot.Pitch *= RotationMultiplier;
-
 	const float DisableBlend = GetCurveValue(AnimNames.DisableAOCurveName);
-	return FMath::Lerp(FVector2D(DeltaRot.Yaw, DeltaRot.Pitch), FVector2D::ZeroVector, DisableBlend);
+	return FMath::Lerp({DeltaRot.Yaw, DeltaRot.Pitch}, FVector2D::ZeroVector, DisableBlend);
 }
 
 void UGASPAnimInstance::RefreshOverlaySettings(float DeltaTime)

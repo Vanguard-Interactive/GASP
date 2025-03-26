@@ -240,7 +240,7 @@ protected:
 	void OnCompleteTraversal(FName NotifyName);
 
 	/** Cached traversal check results from the most recent traversal attempt */
-	UPROPERTY(BlueprintReadOnly, Category="Traversal", ReplicatedUsing="OnRep_TraversalResult", Transient)
+	UPROPERTY(BlueprintReadOnly, Category="Traversal", ReplicatedUsing=OnRep_TraversalResult, Transient)
 	FTraversalCheckResult TraversalCheckResult{};
 
 	/** Whether the character is currently performing a traversal action */

@@ -158,21 +158,6 @@ struct GASP_API FAnimCurves
 };
 
 USTRUCT(BlueprintType)
-struct GASP_API FMovementDirectionThreshold
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float FL{-60.f};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float FR{60.f};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float BL{-120.f};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float BR{120.f};
-};
-
-USTRUCT(BlueprintType)
 struct GASP_API FOverlaySettings
 {
 	GENERATED_BODY()

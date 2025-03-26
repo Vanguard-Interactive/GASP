@@ -68,8 +68,6 @@ protected:
 	FCharacterInfo CharacterInfo{};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|General", Transient)
 	FGASPBlendStackInputs BlendStackInputs{};
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|General", Transient)
-	FMovementDirectionThreshold MovementDirectionThreshold;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MotionMatching", Transient)
 	FMotionMatchingInfo BlendStack;
 	UPROPERTY(VisibleAnywhere, Category = "LocomotionAction|Information", BlueprintReadOnly, Transient)
@@ -122,7 +120,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category="Additive", BlueprintReadOnly, Transient)
 	FRotator SpineRotation{FRotator::ZeroRotator};
 	UPROPERTY(EditAnywhere, Category="HeldObject", BlueprintReadOnly, Transient)
-	FVector SocketOffset{FVector::ZeroVector};
+	FVector RightHandOffset{FVector::ZeroVector};
+	UPROPERTY(EditAnywhere, Category="HeldObject", BlueprintReadOnly, Transient)
+	FVector LeftHandOffset{FVector::ZeroVector};
 
 public:
 	UFUNCTION(BlueprintPure, Category="Movement|Analys", meta = (BlueprintThreadSafe))
@@ -152,9 +152,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Movement|Analys", meta = (BlueprintThreadSafe))
 	bool IsEnableSteering() const;
 
-	UFUNCTION(BlueprintPure, Category="Leaning", meta = (BlueprintThreadSafe))
+	UFUNCTION(BlueprintPure, Category="Movement|Lean", meta = (BlueprintThreadSafe))
 	FVector2D GetLeanAmount() const;
-	UFUNCTION(BlueprintPure, Category="Leaning", meta = (BlueprintThreadSafe))
+	UFUNCTION(BlueprintPure, Category="Movement|Lean", meta = (BlueprintThreadSafe))
 	FVector GetRelativeAcceleration() const;
 	UFUNCTION(BlueprintPure, Category="BlendStack", meta = (BlueprintThreadSafe))
 	FQuat GetDesiredFacing() const;
@@ -174,11 +174,11 @@ protected:
 	void RefreshEssentialValues(const float DeltaSeconds);
 	UFUNCTION(BlueprintCallable, Category = "Runtime", meta = (BlueprintThreadSafe))
 	void RefreshRagdollValues(const float DeltaSeconds);
-	UFUNCTION(BlueprintCallable, Category = "Runtive", meta = (BlueprintThreadSafe))
+	UFUNCTION(BlueprintCallable, Category = "Runtime", meta = (BlueprintThreadSafe))
 	virtual void RefreshCVar();
-	UFUNCTION(BlueprintCallable, Category = "Runtive", meta = (BlueprintThreadSafe))
+	UFUNCTION(BlueprintCallable, Category = "Runtime", meta = (BlueprintThreadSafe))
 	void RefreshTrajectory(float DeltaSeconds);
-	UFUNCTION(BlueprintCallable, Category = "Runtive", meta = (BlueprintThreadSafe))
+	UFUNCTION(BlueprintCallable, Category = "Runtime", meta = (BlueprintThreadSafe))
 	void RefreshMovementDirection(float DeltaSeconds);
 
 	/**************
@@ -221,12 +221,10 @@ public:
 	float GetAOYaw() const;
 
 	UFUNCTION(BlueprintPure, Category = "BlendStack", meta = (BlueprintThreadSafe))
-	FTransform GetEffectorTransform(const FName ObjectIKSocketName) const;
+	FTransform GetHandIKTransform(const FName HandIKSocketName, const FName ObjectIKSocketName,
+	                              const FVector& SocketOffset) const;
 
 protected:
-	UFUNCTION(BlueprintPure, Category = "Movement|Analys", meta = (BlueprintThreadSafe))
-	EMovementDirection CalculateMovementDirection() const;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "PoseSearchData|Trajectory", Transient)
 	FPoseSearchTrajectory_WorldCollisionResults CollisionResults{};
 
@@ -263,9 +261,6 @@ public:
 	FFootPlacementInterpolationSettings GetPlantInterpolationSettings() const;
 
 	UFUNCTION(BlueprintGetter, Category = "Movement|Analys", meta = (BlueprintThreadSafe))
-	FMovementDirectionThreshold GetMovementDirectionThresholds() const;
-
-	UFUNCTION(BlueprintGetter, Category = "Movement|Analys", meta = (BlueprintThreadSafe))
 	FORCEINLINE FCharacterInfo GetCharacterInfo() const { return CharacterInfo; }
 
 	UFUNCTION(BlueprintGetter, Category = "Movement|Analys", meta = (BlueprintThreadSafe))
@@ -297,7 +292,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "StateMachine", Transient)
 	FGASPBlendStackInputs PreviousBlendStackInputs{};
 	UPROPERTY(VisibleAnywhere, Category = "StateMachine", BlueprintReadOnly, Transient)
-	EStateMachineState StateMachineState{};
+	EStateMachineState StateMachineState{EStateMachineState::IdleLoop};
 	UPROPERTY(VisibleAnywhere, Category = "StateMachine", BlueprintReadOnly, Transient)
 	bool bNoValidAnim{true};
 	UPROPERTY(VisibleAnywhere, Category = "StateMachine", BlueprintReadOnly, Transient)
