@@ -11,7 +11,6 @@
 #include "IObjectChooser.h"
 #include "MotionWarpingComponent.h"
 #include "Net/UnrealNetwork.h"
-#include "PlayMontageCallbackProxy.h"
 #include "Engine/AssetManager.h"
 #include "PoseSearch/PoseSearchLibrary.h"
 #include "PoseSearch/PoseSearchResult.h"
@@ -448,6 +447,7 @@ void UGASPTraversalComponent::Traversal_ServerImplementation(const FTraversalChe
 {
 	TraversalCheckResult = TraversalRep;
 	PerformTraversalAction();
+	Multicast_Traversal(TraversalCheckResult);
 }
 
 void UGASPTraversalComponent::OnTraversalStart()
@@ -467,7 +467,7 @@ void UGASPTraversalComponent::OnTraversalEnd() const
 	MovementComponent->bServerAcceptClientAuthoritativePosition = false;
 }
 
-void UGASPTraversalComponent::OnCompleteTraversal(FName NotifyName)
+void UGASPTraversalComponent::OnCompleteTraversal()
 {
 	bDoingTraversalAction = false;
 	CapsuleComponent->IgnoreComponentWhenMoving(TraversalCheckResult.HitComponent, false);
@@ -490,15 +490,38 @@ void UGASPTraversalComponent::PerformTraversalAction_Implementation()
 
 	OnTraversalStart();
 
-	const auto MontageProxy{
-		UPlayMontageCallbackProxy::CreateProxyObjectForPlayMontage(
-			MeshComponent.Get(), const_cast<UAnimMontage*>(TraversalCheckResult.ChosenMontage.Get()),
-			TraversalCheckResult.PlayRate, TraversalCheckResult.StartTime)
-	};
+	// const auto MontageProxy{
+	// 	UPlayMontageCallbackProxy::CreateProxyObjectForPlayMontage(
+	// 		MeshComponent.Get(), const_cast<UAnimMontage*>(TraversalCheckResult.ChosenMontage.Get()),
+	// 		TraversalCheckResult.PlayRate, TraversalCheckResult.StartTime)
+	// };
+	// MontageProxy->OnCompleted.AddDynamic(this, &ThisClass::OnCompleteTraversal);
+	// MontageProxy->OnInterrupted.AddDynamic(this, &ThisClass::OnCompleteTraversal);
 
-	MontageProxy->OnCompleted.AddUniqueDynamic(this, &ThisClass::OnCompleteTraversal);
-	MontageProxy->OnInterrupted.AddUniqueDynamic(this, &ThisClass::OnCompleteTraversal);
-	MontageProxy->OnBlendOut.AddUniqueDynamic(this, &ThisClass::OnCompleteTraversal);
+	UAnimMontage* MontageToPlay{const_cast<UAnimMontage*>(TraversalCheckResult.ChosenMontage.Get())};
+	AnimInstance->Montage_Play(MontageToPlay, TraversalCheckResult.PlayRate, EMontagePlayReturnType::MontageLength,
+	                           TraversalCheckResult.StartTime);
+
+	FOnMontageBlendingOutStarted BlendedOutEndedDelegate;
+	BlendedOutEndedDelegate.BindWeakLambda(this, [this](UAnimMontage* Montage, bool bInterrupted)
+	{
+		if (bInterrupted)
+		{
+			OnCompleteTraversal();
+		}
+	});
+	AnimInstance->Montage_SetBlendingOutDelegate(BlendedOutEndedDelegate, MontageToPlay);
+
+	FOnMontageEnded EndedDelegate;
+	EndedDelegate.BindWeakLambda(this, [this](UAnimMontage* Montage, bool bInterrupted)
+	{
+		if (!bInterrupted)
+		{
+			OnCompleteTraversal();
+		}
+	});
+	AnimInstance->Montage_SetEndDelegate(EndedDelegate, MontageToPlay);
+
 
 	bDoingTraversalAction = true;
 	CapsuleComponent->IgnoreComponentWhenMoving(TraversalCheckResult.HitComponent, true);
@@ -509,6 +532,12 @@ void UGASPTraversalComponent::PerformTraversalAction_Implementation()
 void UGASPTraversalComponent::Server_Traversal_Implementation(FTraversalCheckResult TraversalRep)
 {
 	Traversal_ServerImplementation(TraversalRep);
+}
+
+void UGASPTraversalComponent::Multicast_Traversal_Implementation(FTraversalCheckResult TraversalRep)
+{
+	TraversalCheckResult = TraversalRep;
+	PerformTraversalAction();
 }
 
 FComputeLedgeData UGASPTraversalComponent::ComputeLedgeData(FHitResult& HitResult) const

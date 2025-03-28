@@ -34,5 +34,4 @@ public:
 
 protected:
 	static void GetBlendPinProperties(const UEdGraphPin* Pin, bool& bBlendPosePin, bool& bBlendTimePin);
-	FName GetSimpleTagName(FGameplayTag Tags) const;
 };

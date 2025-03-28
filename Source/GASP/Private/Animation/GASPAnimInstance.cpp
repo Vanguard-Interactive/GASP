@@ -10,7 +10,6 @@
 #include "ChooserFunctionLibrary.h"
 #include "PoseSearch/PoseSearchLibrary.h"
 #include "AnimationWarpingLibrary.h"
-#include "Actors/GASPHeldObject.h"
 #include "BlendStack/BlendStackAnimNodeLibrary.h"
 #include "BoneControllers/AnimNode_FootPlacement.h"
 #include "Interfaces/GASPHeldObjectInterface.h"
@@ -126,27 +125,20 @@ FTransform UGASPAnimInstance::GetHandIKTransform(const FName HandIKSocketName, c
 	}
 
 	const FTransform SocketTransform = SkelMeshComp->GetSocketTransform(HandIKSocketName);
-	auto* Interface = static_cast<IGASPHeldObjectInterface*>(CachedCharacter.Get());
-	if (!Interface)
+	const auto* Interface = Cast<IGASPHeldObjectInterface>(CachedCharacter.Get());
+	if (!Interface && !CachedCharacter->Implements<UGASPHeldObjectInterface>())
 	{
-		return SocketTransform;
+		return FTransform::Identity;
 	}
 
-	auto* HeldObject = Interface->GetHeldObject();
-	if (!IsValid(HeldObject))
+	const auto* HeldObject = Interface->Execute_GetHeldObject(CachedCharacter.Get());
+	if (!IsValid(HeldObject) || !HeldObject->DoesSocketExist(ObjectIKSocketName))
 	{
-		return SocketTransform;
+		return FTransform::Identity;
 	}
 
-	const auto* HeldMeshComp = HeldObject->GetMesh();
-	if (!IsValid(HeldMeshComp) || !HeldMeshComp->DoesSocketExist(ObjectIKSocketName))
-	{
-		return SocketTransform;
-	}
-
-	const FTransform ObjectTransform = HeldMeshComp->GetSocketTransform(ObjectIKSocketName);
-
-	return ObjectTransform * FTransform(SocketOffset);
+	const FTransform ObjectTransform = HeldObject->GetSocketTransform(ObjectIKSocketName);
+	return ObjectTransform.GetRelativeTransform(SocketTransform * FTransform(SocketOffset));
 }
 
 bool UGASPAnimInstance::IsEnableSteering() const
@@ -213,14 +205,14 @@ void UGASPAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 	CachedCharacter->OverlayModeChanged.AddUniqueDynamic(this, &ThisClass::OnOverlayModeChanged);
 
 	Gait = CachedCharacter->GetGait();
-	StanceMode = CachedCharacter->GetStanceMode();
 	RotationMode = CachedCharacter->GetRotationMode();
 	MovementState = CachedCharacter->GetMovementState();
+	LocomotionAction = CachedCharacter->GetLocomotionAction();
 
 	// it's because UChooserTable can't work with FGameplayTag, maybe fixed in 5.6
+	StanceMode = FGameplayTagContainer(CachedCharacter->GetStanceMode());
 	MovementMode = FGameplayTagContainer(CachedCharacter->GetMovementMode());
 
-	LocomotionAction = CachedCharacter->GetLocomotionAction();
 
 	RefreshEssentialValues(DeltaSeconds);
 	RefreshTrajectory(DeltaSeconds);
@@ -398,7 +390,7 @@ bool UGASPAnimInstance::IsPivoting() const
 
 	auto ClampedSpeed = [this](float Speed)
 	{
-		if (StanceMode == EStanceMode::Crouch)
+		if (StanceMode.HasTagExact(StanceTags::Crouching))
 		{
 			return 65.f;
 		}
@@ -729,14 +721,15 @@ void UGASPAnimInstance::RefreshLayering(float DeltaTime)
 	LayeringState.ArmRightMeshSpaceBlendAmount = UE_REAL_TO_FLOAT(
 		1.f - FMath::FloorToInt(LayeringState.ArmRightLocalSpaceBlendAmount));
 
-	BlendPoses.BasePoseN = FMath::FInterpTo(BlendPoses.BasePoseN, StanceMode == EStanceMode::Stand ? 1.f : 0.f,
+	BlendPoses.BasePoseN = FMath::FInterpTo(BlendPoses.BasePoseN,
+	                                        StanceMode.HasTagExact(StanceTags::Standing) ? 1.f : 0.f,
 	                                        DeltaTime, 15.f);
 	BlendPoses.BasePoseCLF = FMath::GetMappedRangeValueClamped<float, float>(
 		{0.f, 1.f}, {1.f, 0.f}, BlendPoses.BasePoseN);
 }
 
-void UGASPAnimInstance::SetBlendStackAnimFromChooser(const FAnimNodeReference& Node, EStateMachineState NewState,
-                                                     bool bForceBlend)
+void UGASPAnimInstance::SetBlendStackAnimFromChooser(const FAnimNodeReference& Node, const EStateMachineState NewState,
+                                                     const bool bForceBlend)
 {
 	StateMachineState = NewState;
 	PreviousBlendStackInputs = BlendStackInputs;
@@ -744,6 +737,11 @@ void UGASPAnimInstance::SetBlendStackAnimFromChooser(const FAnimNodeReference& N
 	bNoValidAnim = false;
 	bNotifyTransition_ReTransition = false;
 	bNotifyTransition_ToLoop = false;
+
+	if (!StateMachineTable)
+	{
+		return;
+	}
 
 	FGASPChooserOutputs ChooserOutputs;
 	FChooserEvaluationContext Context = UChooserFunctionLibrary::MakeChooserEvaluationContext();
@@ -755,7 +753,7 @@ void UGASPAnimInstance::SetBlendStackAnimFromChooser(const FAnimNodeReference& N
 			Context, UChooserFunctionLibrary::MakeEvaluateChooser(StateMachineTable),
 			UAnimationAsset::StaticClass())
 	};
-
+	// TArray<UObject*> Objects;
 	if (Objects.IsEmpty())
 	{
 		bNoValidAnim = true;

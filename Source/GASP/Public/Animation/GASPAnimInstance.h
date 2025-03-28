@@ -56,7 +56,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "CharacterInfromation|States", BlueprintReadOnly, Transient)
 	EGait Gait{};
 	UPROPERTY(VisibleAnywhere, Category = "CharacterInfromation|States", BlueprintReadOnly, Transient)
-	EStanceMode StanceMode{};
+	FGameplayTagContainer StanceMode{};
 	UPROPERTY(VisibleAnywhere, Category = "CharacterInfromation|States", BlueprintReadOnly, Transient)
 	EMovementState MovementState{};
 	UPROPERTY(VisibleAnywhere, Category = "CharacterInfromation|States", BlueprintReadOnly, Transient)
@@ -78,7 +78,7 @@ protected:
 	FBlendStackMachine BlendStackMachine;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
-	EStanceMode PreviousStanceMode{EStanceMode::Stand};
+	FGameplayTagContainer PreviousStanceMode{};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
 	EGait PreviousGait{EGait::Run};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
@@ -95,12 +95,13 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient)
 	FGameplayTagContainer OverlayMode{OverlayModeTags::Default};
 
+	UE_DEPRECATED(5.5, "will be remove in next update")
 	UPROPERTY(EditAnywhere, Category="PoseSearchData|Choosers", BlueprintReadOnly)
-	TObjectPtr<class UChooserTable> LocomotionTable{};
+	TObjectPtr<class UChooserTable> LocomotionTable{nullptr};
 	UPROPERTY(EditAnywhere, Category="PoseSearchData|Choosers", BlueprintReadOnly)
-	TSoftObjectPtr<UChooserTable> OverlayTable{};
+	TSoftObjectPtr<UChooserTable> OverlayTable{nullptr};
 	UPROPERTY(EditAnywhere, Category="PoseSearchData|Choosers", BlueprintReadOnly)
-	TObjectPtr<UChooserTable> StateMachineTable{};
+	TObjectPtr<UChooserTable> StateMachineTable{nullptr};
 
 	UPROPERTY(EditAnywhere, Category="PoseSearchData|Trajectory", BlueprintReadOnly, Transient)
 	FPoseSearchQueryTrajectory Trajectory{};
@@ -267,7 +268,7 @@ public:
 	FORCEINLINE EGait GetGait() const { return Gait; }
 
 	UFUNCTION(BlueprintGetter, Category = "Movement|Analys", meta = (BlueprintThreadSafe))
-	FORCEINLINE EStanceMode GetStanceMode() const { return StanceMode; }
+	FORCEINLINE FGameplayTag GetStanceMode() const { return StanceMode.First(); }
 
 	UFUNCTION(BlueprintGetter, Category = "Movement|Analys", meta = (BlueprintThreadSafe))
 	FORCEINLINE EMovementState GetMovementState() const { return MovementState; }
@@ -291,7 +292,7 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "StateMachine", Transient)
 	FGASPBlendStackInputs PreviousBlendStackInputs{};
-	UPROPERTY(VisibleAnywhere, Category = "StateMachine", BlueprintReadOnly, Transient)
+	UPROPERTY(EditAnywhere, Category = "StateMachine", BlueprintReadOnly, Transient)
 	EStateMachineState StateMachineState{EStateMachineState::IdleLoop};
 	UPROPERTY(VisibleAnywhere, Category = "StateMachine", BlueprintReadOnly, Transient)
 	bool bNoValidAnim{true};
@@ -309,8 +310,8 @@ protected:
 	float TargetRotationDelta{0.f};
 
 	UFUNCTION(BlueprintCallable, Category = "StateMachine", meta = (BlueprintThreadSafe))
-	void SetBlendStackAnimFromChooser(const FAnimNodeReference& Node, EStateMachineState NewState,
-	                                  bool bForceBlend = false);
+	void SetBlendStackAnimFromChooser(const FAnimNodeReference& Node, const EStateMachineState NewState,
+	                                  const bool bForceBlend = false);
 
 	UFUNCTION(BlueprintPure, Category = "StateMachine", meta = (BlueprintThreadSafe))
 	bool IsAnimationAlmostComplete() const;

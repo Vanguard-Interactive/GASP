@@ -28,7 +28,6 @@ AGASPCharacter::AGASPCharacter(const FObjectInitializer& ObjectInitializer)
 		GetMesh()->SetRelativeRotation_Direct({0.f, -90.f, 0.f});
 		GetMesh()->SetRelativeLocation_Direct({0.f, 0.f, -90.f});
 	}
-
 	MovementComponent = Cast<UGASPCharacterMovementComponent>(GetCharacterMovement());
 	MotionWarpingComponent = CreateDefaultSubobject<UMotionWarpingComponent>(TEXT("MotionWarping"));
 	TraversalComponent = CreateDefaultSubobject<UGASPTraversalComponent>(TEXT("TraversalComponent"));
@@ -84,7 +83,7 @@ void AGASPCharacter::Tick(float DeltaTime)
 
 	if (MovementMode == MovementModeTags::Grounded)
 	{
-		if (StanceMode != EStanceMode::Crouch)
+		if (StanceMode != StanceTags::Crouching)
 		{
 			RefreshGait();
 		}
@@ -102,14 +101,14 @@ void AGASPCharacter::OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeigh
 {
 	Super::OnStartCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
 
-	SetStanceMode(EStanceMode::Crouch);
+	SetStanceMode(StanceTags::Crouching);
 }
 
 void AGASPCharacter::OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
 {
 	Super::OnEndCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
 
-	SetStanceMode(EStanceMode::Stand);
+	SetStanceMode(StanceTags::Standing);
 }
 
 void AGASPCharacter::PostInitializeComponents()
@@ -269,7 +268,7 @@ void AGASPCharacter::SetMovementState(const EMovementState NewMovementState, con
 	}
 }
 
-void AGASPCharacter::SetStanceMode(const EStanceMode NewStanceMode, const bool bForce)
+void AGASPCharacter::SetStanceMode(const FGameplayTag NewStanceMode, const bool bForce)
 {
 	if (StanceMode != NewStanceMode || bForce)
 	{
@@ -285,7 +284,7 @@ void AGASPCharacter::SetStanceMode(const EStanceMode NewStanceMode, const bool b
 	}
 }
 
-void AGASPCharacter::Server_SetStanceMode_Implementation(const EStanceMode NewStanceMode)
+void AGASPCharacter::Server_SetStanceMode_Implementation(const FGameplayTag NewStanceMode)
 {
 	SetStanceMode(NewStanceMode);
 }

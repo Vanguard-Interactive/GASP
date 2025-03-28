@@ -3,7 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "Types/EnumTypes.h"
+#include "Types/TagTypes.h"
 #include "GASPGameplayCameraInterface.generated.h"
 
 
@@ -19,8 +21,8 @@ struct FCameraProperties
 	ECameraMode CameraMode{0};
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EStanceMode StanceMode{0};
-	
+	FGameplayTag StanceMode{StanceTags::Standing};
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EViewMode ViewMode{0};
 };

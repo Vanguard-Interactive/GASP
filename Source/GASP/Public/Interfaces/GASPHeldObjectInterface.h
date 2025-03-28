@@ -5,21 +5,21 @@
 #include "CoreMinimal.h"
 #include "GASPHeldObjectInterface.generated.h"
 
-class AGASPHeldObject;
+class UMeshComponent;
 /**
  * 
  */
-UINTERFACE(MinimalAPI)
+UINTERFACE()
 class UGASPHeldObjectInterface : public UInterface
 {
 	GENERATED_BODY()
 };
 
-class IGASPHeldObjectInterface
+class GASP_API IGASPHeldObjectInterface
 {
 	GENERATED_BODY()
 
 public:
-	UFUNCTION(Blueprintable, Category = "GASP|HeldObject")
-	virtual AGASPHeldObject* GetHeldObject() = 0;
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "HeldObject")
+	UMeshComponent* GetHeldObject();
 };

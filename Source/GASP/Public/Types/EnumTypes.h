@@ -52,16 +52,6 @@ enum class EMovementState : uint8
 	Moving
 };
 
-/**
- * Movement gait
- */
-UENUM(BlueprintType, meta = (ScriptName = "EStanceMode"))
-enum class EStanceMode : uint8
-{
-	Stand,
-	Crouch
-};
-
 UENUM(BlueprintType, meta = (ScriptName = "EMovementDirection"))
 enum class EMovementDirection : uint8
 {

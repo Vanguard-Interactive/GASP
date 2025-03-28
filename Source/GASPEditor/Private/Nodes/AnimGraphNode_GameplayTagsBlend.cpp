@@ -1,5 +1,6 @@
 ﻿#include "Nodes/AnimGraphNode_GameplayTagsBlend.h"
 #include "GameplayTagsManager.h"
+#include "Utils/GASPBlueprintLibrary.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(AnimGraphNode_GameplayTagsBlend)
 
@@ -56,7 +57,8 @@ void UAnimGraphNode_GameplayTagsBlend::CustomizePinData(UEdGraphPin* Pin, const 
 		                       ? LOCTEXT("Default", "Default")
 		                       : PinIndex > Node.Tags.Num()
 		                       ? LOCTEXT("Invalid", "Invalid")
-		                       : FText::AsCultureInvariant(GetSimpleTagName(Node.Tags[PinIndex - 1]).ToString());
+		                       : FText::AsCultureInvariant(
+			                       UGASPBlueprintLibrary::GetShortTagName(Node.Tags[PinIndex - 1]).ToString());
 
 	if (bBlendPosePin)
 	{
@@ -92,13 +94,6 @@ void UAnimGraphNode_GameplayTagsBlend::GetBlendPinProperties(const UEdGraphPin* 
 	const auto PinName{PinFullName.Left(SeparatorIndex)};
 	bBlendPosePin = PinName == TEXTVIEW("BlendPose");
 	bBlendTimePin = PinName == TEXTVIEW("BlendTime");
-}
-
-FName UAnimGraphNode_GameplayTagsBlend::GetSimpleTagName(FGameplayTag Tags) const
-{
-	const auto TagNode{UGameplayTagsManager::Get().FindTagNode(Tags)};
-
-	return TagNode.IsValid() ? TagNode->GetSimpleTagName() : NAME_None;
 }
 
 #undef LOCTEXT_NAMESPACE

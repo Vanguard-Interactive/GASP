@@ -3,6 +3,7 @@
 | Plugin Version                                                     | Unreal Engine Version |
 |--------------------------------------------------------------------|-----------------------|
 | [1.2](https://github.com/Anaylan/GASP-Refactored/releases/tag/1.2) | 5.5                   |
+| [1.3](https://github.com/Anaylan/GASP-Refactored/releases/tag/1.3) | 5.5                   |
 
 **The plugin is developed and tested primarily on Windows, so use it on other platforms at your own risk.**
 

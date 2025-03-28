@@ -74,13 +74,13 @@ FGameplayTag UGASPLinkedAnimInstance::GetMovementMode() const
 	return FGameplayTag();
 }
 
-EStanceMode UGASPLinkedAnimInstance::GetStanceMode() const
+FGameplayTag UGASPLinkedAnimInstance::GetStanceMode() const
 {
 	if (Parent.IsValid())
 	{
 		return Parent->GetStanceMode();
 	}
-	return EStanceMode();
+	return FGameplayTag();
 }
 
 ERotationMode UGASPLinkedAnimInstance::GetRotationMode() const

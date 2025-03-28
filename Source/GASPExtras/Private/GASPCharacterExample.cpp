@@ -61,7 +61,7 @@ void AGASPCharacterExample::WalkAction(bool bPressed)
 
 void AGASPCharacterExample::CrouchAction(bool bPressed)
 {
-	if (GetStanceMode() != EStanceMode::Crouch)
+	if (GetStanceMode() != StanceTags::Crouching)
 	{
 		Crouch();
 	}

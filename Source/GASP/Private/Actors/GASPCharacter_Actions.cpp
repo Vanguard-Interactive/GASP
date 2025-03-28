@@ -80,11 +80,9 @@ void AGASPCharacter::StartRagdollingImplementation()
 	MovementComponent->bIgnoreClientMovementErrorChecksAndCorrection = true;
 
 	// Detach the mesh so that character transformation changes will not affect it in any way.
-
 	GetMesh()->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 
 	// Disable capsule collision and enable mesh physics simulation.
-
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	GetMesh()->SetCollisionObjectType(ECC_PhysicsBody);
@@ -129,9 +127,9 @@ void AGASPCharacter::StartRagdollingImplementation()
 	}
 
 	// Clear the character movement mode and set the locomotion action to ragdolling.
-
 	MovementComponent->SetMovementMode(MOVE_None);
 
+	OnStartRagdolling();
 	SetLocomotionAction(LocomotionActionTags::Ragdoll);
 }
 
@@ -164,7 +162,6 @@ void AGASPCharacter::RefreshRagdolling(const float DeltaTime)
 
 	// Since we are dealing with physics here, we should not use functions such as USkinnedMeshComponent::GetSocketTransform() as
 	// they may return an incorrect result in situations like when the animation blueprint is not ticking or when URO is enabled.
-
 	const auto* PelvisBody{GetMesh()->GetBodyInstance(NAME_pelvis)};
 	FVector PelvisLocation;
 
@@ -191,7 +188,6 @@ void AGASPCharacter::RefreshRagdolling(const float DeltaTime)
 	// While we could get rid of the line trace here and just use RagdollTargetLocation
 	// as the character's location, we don't do that because the camera depends on the
 	// capsule's bottom location, so its removal will cause the camera to behave erratically.
-
 	bool bGrounded;
 	SetActorLocation(RagdollTraceGround(bGrounded), false, nullptr, ETeleportType::TeleportPhysics);
 
@@ -239,7 +235,6 @@ void AGASPCharacter::RefreshRagdolling(const float DeltaTime)
 	}
 
 	// Use the speed to scale ragdoll joint strength for physical animation.
-
 	static constexpr auto ReferenceSpeed{1000.0f};
 	static constexpr auto Stiffness{25000.0f};
 
@@ -248,7 +243,6 @@ void AGASPCharacter::RefreshRagdolling(const float DeltaTime)
 	GetMesh()->SetAllMotorsAngularDriveParams(SpeedAmount * Stiffness, 0.0f, 0.0f);
 
 	// Limit the speed of ragdoll bodies.
-
 	if (RagdollingState.SpeedLimitFrameTimeRemaining > 0)
 	{
 		RagdollingState.SpeedLimitFrameTimeRemaining -= 1;
@@ -390,7 +384,6 @@ void AGASPCharacter::StopRagdollingImplementation()
 	SetActorLocationAndRotation(NewActorLocation, NewActorRotation, false, nullptr, ETeleportType::TeleportPhysics);
 
 	// Attach the mesh back and restore its default relative location.
-
 	const auto& ActorTransform{GetActorTransform()};
 
 	GetMesh()->SetWorldLocationAndRotationNoPhysics(ActorTransform.TransformPositionNoScale(GetBaseTranslationOffset()),
@@ -402,7 +395,6 @@ void AGASPCharacter::StopRagdollingImplementation()
 	if (GetMesh()->ShouldUseUpdateRateOptimizations())
 	{
 		// Disable URO for one frame to force the animation blueprint to update and get rid of the incorrect mesh pose.
-
 		GetMesh()->bEnableUpdateRateOptimizations = false;
 
 		GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this]
@@ -437,10 +429,8 @@ void AGASPCharacter::StopRagdollingImplementation()
 		MovementComponent->Velocity = RagdollingState.Velocity;
 	}
 
+	OnStopRagdolling();
 	SetLocomotionAction(FGameplayTag::EmptyTag);
 
-	if (bGrounded)
-	{
-		UPlayMontageCallbackProxy::CreateProxyObjectForPlayMontage(GetMesh(), SelectGetUpMontage(bRagdollFacingUpward));
-	}
+	AnimationInstance->Montage_Play(SelectGetUpMontage(bRagdollFacingUpward));
 }

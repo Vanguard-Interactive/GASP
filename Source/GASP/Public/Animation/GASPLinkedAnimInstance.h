@@ -43,7 +43,7 @@ public:
 	FGameplayTag GetMovementMode() const;
 
 	UFUNCTION(BlueprintGetter, meta = (BlueprintThreadSafe))
-	EStanceMode GetStanceMode() const;
+	FGameplayTag GetStanceMode() const;
 
 	UFUNCTION(BlueprintGetter, meta = (BlueprintThreadSafe))
 	ERotationMode GetRotationMode() const;

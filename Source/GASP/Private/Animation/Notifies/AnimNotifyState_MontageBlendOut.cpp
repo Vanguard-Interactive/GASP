@@ -60,7 +60,7 @@ void UAnimNotifyState_MontageBlendOut::NotifyTick(USkeletalMeshComponent* MeshCo
 
 	if (ShouldBlendOut)
 	{
-		FMontageBlendSettings BlendOutSettings;
+		FMontageBlendSettings BlendOutSettings{AnimMontage->BlendOut};
 		BlendOutSettings.Blend.BlendTime = BlendOutTime;
 		BlendOutSettings.BlendMode = EMontageBlendMode::Standard;
 		BlendOutSettings.BlendProfile = const_cast<UBlendProfile*>(AnimInstance->GetBlendProfileByName(BlendProfile));

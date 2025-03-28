@@ -234,10 +234,9 @@ protected:
 
 	/** 
 	 * Handles the completion of a traversal action 
-	 * @param NotifyName - The name of the animation notify that triggered the completion event
 	 */
 	UFUNCTION()
-	void OnCompleteTraversal(FName NotifyName);
+	void OnCompleteTraversal();
 
 	/** Cached traversal check results from the most recent traversal attempt */
 	UPROPERTY(BlueprintReadOnly, Category="Traversal", ReplicatedUsing=OnRep_TraversalResult, Transient)
@@ -363,6 +362,8 @@ public:
 	 */
 	UFUNCTION(Reliable, Server, Category="Traversal")
 	void Server_Traversal(FTraversalCheckResult TraversalRep);
+	UFUNCTION(Reliable, NetMulticast, Category="Traversal")
+	void Multicast_Traversal(FTraversalCheckResult TraversalRep);
 
 	/**
 	 * Checks whether the character is currently performing a traversal action
