@@ -278,11 +278,6 @@ private:
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastStartRagdolling();
 
-	UFUNCTION(BlueprintImplementableEvent)
-	void OnStartRagdolling();
-	UFUNCTION(BlueprintImplementableEvent)
-	void OnStopRagdolling();
-
 	void StartRagdollingImplementation();
 
 public:
@@ -290,6 +285,11 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "GASP|Character", Meta = (ReturnDisplayName = "Success"))
 	bool StopRagdolling();
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnStartRagdolling();
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnStopRagdolling();
 
 private:
 	UFUNCTION(Server, Reliable)

@@ -129,8 +129,8 @@ void AGASPCharacter::StartRagdollingImplementation()
 	// Clear the character movement mode and set the locomotion action to ragdolling.
 	MovementComponent->SetMovementMode(MOVE_None);
 
-	OnStartRagdolling();
 	SetLocomotionAction(LocomotionActionTags::Ragdoll);
+	OnStartRagdolling();
 }
 
 void AGASPCharacter::SetRagdollTargetLocation(const FVector& NewTargetLocation)
@@ -428,9 +428,9 @@ void AGASPCharacter::StopRagdollingImplementation()
 		MovementComponent->SetMovementMode(MOVE_Falling);
 		MovementComponent->Velocity = RagdollingState.Velocity;
 	}
-
-	OnStopRagdolling();
+	
 	SetLocomotionAction(FGameplayTag::EmptyTag);
 
 	AnimationInstance->Montage_Play(SelectGetUpMontage(bRagdollFacingUpward));
+	OnStopRagdolling();
 }
