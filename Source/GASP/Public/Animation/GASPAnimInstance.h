@@ -26,12 +26,6 @@ class GASP_API UGASPAnimInstance : public UAnimInstance
 
 	FTimerHandle LandedHandle;
 
-	/** Manager for asynchronous loading of assets */
-	FStreamableManager StreamableManager;
-
-	/** Handle for the current streaming request */
-	TSharedPtr<FStreamableHandle> StreamableHandle;
-
 protected:
 	/**************
 	 * References *
@@ -46,7 +40,7 @@ protected:
 	 * Character state *
 	 ******************/
 	UPROPERTY(EditAnywhere, Category = "CharacterInformation|General", BlueprintReadOnly, Transient)
-	FAnimCurves AnimNames{};
+	FAnimUtilityNames AnimNames{};
 
 	UPROPERTY(VisibleAnywhere, Category = "CharacterInformation|General", BlueprintReadOnly, Transient)
 	EMovementDirection MovementDirection{EMovementDirection::F};
@@ -95,11 +89,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient)
 	FGameplayTagContainer OverlayMode{OverlayModeTags::Default};
 
-	UE_DEPRECATED(5.5, "will be remove in next update")
 	UPROPERTY(EditAnywhere, Category="PoseSearchData|Choosers", BlueprintReadOnly)
 	TObjectPtr<class UChooserTable> LocomotionTable{nullptr};
 	UPROPERTY(EditAnywhere, Category="PoseSearchData|Choosers", BlueprintReadOnly)
-	TSoftObjectPtr<UChooserTable> OverlayTable{nullptr};
+	TObjectPtr<UChooserTable> OverlayTable{nullptr};
 	UPROPERTY(EditAnywhere, Category="PoseSearchData|Choosers", BlueprintReadOnly)
 	TObjectPtr<UChooserTable> StateMachineTable{nullptr};
 
@@ -239,9 +232,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Additive|Layering", BlueprintReadOnly)
 	FLayeringState LayeringState;
-	UPROPERTY(EditAnywhere, Category = "Additive|Layering", BlueprintReadOnly)
-	FLayeringNames LayeringCurveNames;
-
+	
 public:
 	UGASPAnimInstance() = default;
 

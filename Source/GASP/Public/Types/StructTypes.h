@@ -83,7 +83,7 @@ struct GASP_API FCharacterInfo
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Meta = (ClampMin = 0, ForceUnits = "s"))
 	float Speed{0.f};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	float Direction{0.f};
+	float AngleVelocity{0.f};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float FlailRate{0.f};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
@@ -134,7 +134,7 @@ struct GASP_API FMotionMatchingInfo
  *
  */
 USTRUCT(BlueprintType)
-struct GASP_API FAnimCurves
+struct GASP_API FAnimUtilityNames
 {
 	GENERATED_BODY()
 
@@ -152,9 +152,41 @@ struct GASP_API FAnimCurves
 	FName TurnInPlaceTag{TEXT("TurnInPlace")};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FName PivotsTag{TEXT("Pivots")};
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FName PoseHistoryTag{TEXT("PoseHistory")};
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
+	FName LayeringLegsSlotName{TEXT("Layering_Legs")};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
+	FName LayeringPelvisSlotName{TEXT("Layering_Pelvis")};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
+	FName LayeringHeadSlotName{TEXT("Layering_Head")};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
+	FName LayeringSpineName{TEXT("Layering_Spine")};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
+	FName LayeringSpineAdditiveName{TEXT("Layering_Spine_Add")};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
+	FName LayeringHeadAdditiveName{TEXT("Layering_Head_Add")};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
+	FName LayeringArmLeftAdditiveName{TEXT("Layering_Arm_L_Add")};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
+	FName LayeringArmRightAdditiveName{TEXT("Layering_Arm_R_Add")};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
+	FName LayeringHandLeftName{TEXT("Layering_Hand_L")};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
+	FName LayeringHandRightName{TEXT("Layering_Hand_R")};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
+	FName LayeringHandLeftIKName{TEXT("Enable_HandIK_L")};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
+	FName LayeringArmLeftName{TEXT("Layering_Arm_L")};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
+	FName LayeringHandRightIKName{TEXT("Enable_HandIK_R")};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
+	FName LayeringArmRightName{TEXT("Layering_Arm_R")};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
+	FName LayeringArmLeftLocalSpaceName{TEXT("Layering_Arm_L_LS")};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
+	FName LayeringArmRightLocalSpaceName{TEXT("Layering_Arm_R_LS")};
 };
 
 USTRUCT(BlueprintType)
@@ -199,43 +231,6 @@ struct GASP_API FLayeringState
 	float PelvisBlendAmount{0.0f};
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Values", Meta = (ClampMin = 0, ClampMax = 1))
 	float LegsBlendAmount{0.0f};
-};
-
-USTRUCT(BlueprintType)
-struct GASP_API FLayeringNames
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
-	FName LayeringLegsSlotName{TEXT("Layering_Legs")};
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
-	FName LayeringPelvisSlotName{TEXT("Layering_Pelvis")};
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
-	FName LayeringHeadSlotName{TEXT("Layering_Head")};
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
-	FName LayeringSpineAdditiveName{TEXT("Layering_Spine_Add")};
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
-	FName LayeringHeadAdditiveName{TEXT("Layering_Head_Add")};
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
-	FName LayeringArmLeftAdditiveName{TEXT("Layering_Arm_L_Add")};
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
-	FName LayeringArmRightAdditiveName{TEXT("Layering_Arm_R_Add")};
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
-	FName LayeringHandLeftName{TEXT("Layering_Hand_L")};
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
-	FName LayeringHandRightName{TEXT("Layering_Hand_R")};
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
-	FName LayeringHandLeftIKName{TEXT("Enable_HandIK_L")};
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
-	FName LayeringArmLeftName{TEXT("Layering_Arm_L")};
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
-	FName LayeringHandRightIKName{TEXT("Enable_HandIK_R")};
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
-	FName LayeringArmRightName{TEXT("Layering_Arm_R")};
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
-	FName LayeringArmLeftLocalSpaceName{TEXT("Layering_Arm_L_LS")};
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
-	FName LayeringArmRightLocalSpaceName{TEXT("Layering_Arm_R_LS")};
 };
 
 USTRUCT(BlueprintType)

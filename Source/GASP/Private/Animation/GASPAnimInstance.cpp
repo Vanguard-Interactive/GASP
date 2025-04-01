@@ -39,7 +39,7 @@ void UGASPAnimInstance::OnLanded(const FHitResult& HitResult)
 
 void UGASPAnimInstance::OnOverlayModeChanged(const FGameplayTag OldOverlayMode)
 {
-	if (!OverlayTable.IsValid())
+	if (!OverlayTable)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("cannot change overlay"))
 		return;
@@ -54,13 +54,11 @@ void UGASPAnimInstance::OnOverlayModeChanged(const FGameplayTag OldOverlayMode)
 	}
 	const UGASPOverlayLayeringDataAsset* DataAsset{
 		static_cast<UGASPOverlayLayeringDataAsset*>(
-			UChooserFunctionLibrary::EvaluateChooser(this, OverlayTable.LoadSynchronous(),
-			                                         UGASPOverlayLayeringDataAsset::StaticClass()))
+			UChooserFunctionLibrary::EvaluateChooser(this, OverlayTable, UGASPOverlayLayeringDataAsset::StaticClass()))
 	};
 
 	if (IsValid(DataAsset))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("OverlayTable is valid"))
 		RightHandOffset = DataAsset->GetRightHandCorrection();
 		LeftHandOffset = DataAsset->GetLeftHandCorrection();
 		Mesh->LinkAnimClassLayers(DataAsset->GetOverlayAnimInstance());
@@ -179,14 +177,6 @@ void UGASPAnimInstance::NativeInitializeAnimation()
 		return;
 	}
 	CachedCharacter->LandedDelegate.AddUniqueDynamic(this, &ThisClass::OnLanded);
-
-	StreamableHandle = StreamableManager.RequestAsyncLoad(OverlayTable.ToSoftObjectPath(),
-	                                                      FStreamableDelegate::CreateWeakLambda(
-		                                                      this, [this]()
-		                                                      {
-			                                                      StreamableHandle.Reset();
-		                                                      }),
-	                                                      FStreamableManager::AsyncLoadHighPriority, false);
 }
 
 void UGASPAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
@@ -212,7 +202,6 @@ void UGASPAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 	// it's because UChooserTable can't work with FGameplayTag, maybe fixed in 5.6
 	StanceMode = FGameplayTagContainer(CachedCharacter->GetStanceMode());
 	MovementMode = FGameplayTagContainer(CachedCharacter->GetMovementMode());
-
 
 	RefreshEssentialValues(DeltaSeconds);
 	RefreshTrajectory(DeltaSeconds);
@@ -315,10 +304,10 @@ void UGASPAnimInstance::RefreshMovementDirection(float DeltaSeconds)
 		return;
 	}
 
-	CharacterInfo.Direction = FGASPMath::CalculateDirection(CharacterInfo.Velocity.GetSafeNormal(),
-	                                                        CharacterInfo.ActorTransform.Rotator());
+	CharacterInfo.AngleVelocity = FGASPMath::CalculateDirection(CharacterInfo.Velocity.GetSafeNormal(),
+	                                                            CharacterInfo.ActorTransform.Rotator());
 
-	MovementDirection = FGASPMath::GetMovementDirection(CharacterInfo.Direction, 60.f, 5.f);
+	MovementDirection = FGASPMath::GetMovementDirection(CharacterInfo.AngleVelocity, 60.f, 5.f);
 }
 
 float UGASPAnimInstance::GetMatchingBlendTime() const
@@ -388,7 +377,7 @@ bool UGASPAnimInstance::IsPivoting() const
 		return Speed > MinMax->X && Speed < MinMax->Y;
 	};
 
-	auto ClampedSpeed = [this](float Speed)
+	auto ClampedSpeed = [this](const float Speed)
 	{
 		if (StanceMode.HasTagExact(StanceTags::Crouching))
 		{
@@ -699,25 +688,24 @@ void UGASPAnimInstance::RefreshLayering(float DeltaTime)
 	                            STAT_UGASPAnimInstance_RefreshLayering, STATGROUP_GASP)
 	TRACE_CPUPROFILER_EVENT_SCOPE(__FUNCTION__);
 
-	LayeringState.SpineAdditiveBlendAmount = GetCurveValue(LayeringCurveNames.LayeringSpineAdditiveName);
-	LayeringState.HeadAdditiveBlendAmount = GetCurveValue(LayeringCurveNames.LayeringHeadAdditiveName);
-	LayeringState.ArmLeftAdditiveBlendAmount = GetCurveValue(LayeringCurveNames.LayeringArmLeftAdditiveName);
-	LayeringState.ArmRightAdditiveBlendAmount = GetCurveValue(LayeringCurveNames.LayeringArmRightAdditiveName);
+	LayeringState.SpineAdditiveBlendAmount = GetCurveValue(AnimNames.LayeringSpineAdditiveName);
+	LayeringState.HeadAdditiveBlendAmount = GetCurveValue(AnimNames.LayeringHeadAdditiveName);
+	LayeringState.ArmLeftAdditiveBlendAmount = GetCurveValue(AnimNames.LayeringArmLeftAdditiveName);
+	LayeringState.ArmRightAdditiveBlendAmount = GetCurveValue(AnimNames.LayeringArmRightAdditiveName);
 
-	LayeringState.HandLeftBlendAmount = GetCurveValue(LayeringCurveNames.LayeringHandLeftName);
-	LayeringState.HandRightBlendAmount = GetCurveValue(LayeringCurveNames.LayeringHandRightName);
+	LayeringState.HandLeftBlendAmount = GetCurveValue(AnimNames.LayeringHandLeftName);
+	LayeringState.HandRightBlendAmount = GetCurveValue(AnimNames.LayeringHandRightName);
 
-	LayeringState.EnableHandLeftIKBlend = FMath::Lerp(0.f, GetCurveValue(LayeringCurveNames.LayeringHandLeftIKName),
-	                                                  GetCurveValue(LayeringCurveNames.LayeringArmLeftName));
-	LayeringState.EnableHandRightIKBlend = FMath::Lerp(
-		0.f, GetCurveValue(LayeringCurveNames.LayeringHandRightIKName),
-		GetCurveValue(LayeringCurveNames.LayeringArmRightName));
+	LayeringState.EnableHandLeftIKBlend = FMath::Lerp(0.f, GetCurveValue(AnimNames.LayeringHandLeftIKName),
+	                                                  GetCurveValue(AnimNames.LayeringArmLeftName));
+	LayeringState.EnableHandRightIKBlend = FMath::Lerp(0.f, GetCurveValue(AnimNames.LayeringHandRightIKName),
+	                                                   GetCurveValue(AnimNames.LayeringArmRightName));
 
-	LayeringState.ArmLeftLocalSpaceBlendAmount = GetCurveValue(LayeringCurveNames.LayeringArmLeftLocalSpaceName);
+	LayeringState.ArmLeftLocalSpaceBlendAmount = GetCurveValue(AnimNames.LayeringArmLeftLocalSpaceName);
 	LayeringState.ArmLeftMeshSpaceBlendAmount = UE_REAL_TO_FLOAT(
 		1.f - FMath::FloorToInt(LayeringState.ArmLeftLocalSpaceBlendAmount));
 
-	LayeringState.ArmRightLocalSpaceBlendAmount = GetCurveValue(LayeringCurveNames.LayeringArmRightLocalSpaceName);
+	LayeringState.ArmRightLocalSpaceBlendAmount = GetCurveValue(AnimNames.LayeringArmRightLocalSpaceName);
 	LayeringState.ArmRightMeshSpaceBlendAmount = UE_REAL_TO_FLOAT(
 		1.f - FMath::FloorToInt(LayeringState.ArmRightLocalSpaceBlendAmount));
 
