@@ -335,25 +335,6 @@ bool AGASPCharacter::CanSprint()
 	return Dot > FMath::Cos(FMath::DegreesToRadians(50.f));
 }
 
-// bool AGASPCharacter::CanSprint()
-// {
-// 	if (RotationMode == ERotationMode::OrientToMovement)
-// 	{
-// 		return true;
-// 	}
-// 	if (RotationMode == ERotationMode::Aim)
-// 	{
-// 		return false;
-// 	}
-//
-// 	const FVector Acceleration{ReplicatedAcceleration};
-//
-// 	FRotator DeltaRot = GetActorRotation() - FRotationMatrix::MakeFromX(Acceleration).Rotator();
-// 	DeltaRot.Normalize();
-//
-// 	return FMath::Abs(DeltaRot.Yaw) < 50.f;
-// }
-
 UGASPCharacterMovementComponent* AGASPCharacter::GetBCharacterMovement() const
 {
 	return static_cast<UGASPCharacterMovementComponent*>(GetCharacterMovement());
@@ -435,13 +416,9 @@ void AGASPCharacter::Landed(const FHitResult& Hit)
 
 bool AGASPCharacter::HasFullMovementInput() const
 {
-	if (MovementStickMode == EAnalogStickBehaviorMode::FixedWalkRun)
+	if (MovementStickMode == EAnalogStickBehaviorMode::FixedWalkRun || MovementStickMode == EAnalogStickBehaviorMode::VariableWalkRun)
 	{
 		return GetPendingMovementInputVector().Size2D() >= AnalogMovementThreshold;
-	}
-	if (MovementStickMode == EAnalogStickBehaviorMode::VariableWalkRun)
-	{
-		return GetLastMovementInputVector().Size2D() >= AnalogMovementThreshold;
 	}
 
 	return true;

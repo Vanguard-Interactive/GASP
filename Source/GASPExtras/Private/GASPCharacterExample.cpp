@@ -4,6 +4,22 @@
 #include "GASPCharacterExample.h"
 #include "GameFramework/GameplayCameraComponent.h"
 
+// Sets default values
+AGASPCharacterExample::AGASPCharacterExample(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	bReplicates = true;
+
+	GameplayCamera = CreateDefaultSubobject<UGameplayCameraComponent>(TEXT("GameplayCamera"));	
+	GameplayCamera->SetIsReplicated(true);
+
+	if (GetMesh())
+	{
+		GameplayCamera->SetupAttachment(GetMesh());
+		GameplayCamera->SetRelativeLocation(FVector::ZAxisVector * 100.f);
+	}
+}
+
 void AGASPCharacterExample::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
@@ -22,17 +38,6 @@ void AGASPCharacterExample::OnRep_Controller()
 	{
 		GameplayCamera->ActivateCameraForPlayerController(PC);
 	}
-}
-
-// Sets default values
-AGASPCharacterExample::AGASPCharacterExample(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
-	bReplicates = true;
-
-	GameplayCamera = CreateDefaultSubobject<UGameplayCameraComponent>(TEXT("GameplayCamera"));
-	GameplayCamera->SetupAttachment(RootComponent);
-	GameplayCamera->SetIsReplicated(true);
 }
 
 void AGASPCharacterExample::SprintAction(bool bPressed)

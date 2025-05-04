@@ -247,7 +247,7 @@ protected:
 	uint8 bDoingTraversalAction : 1{false};
 
 	/** Tags that prevent specific traversal actions from being selected */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Traversal", Transient)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Traversal")
 	TMap<FGameplayTag, FName> BannedTags{};
 
 	/** Delay before re-enabling movement correction after traversal */

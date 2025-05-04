@@ -40,7 +40,7 @@ struct GASP_API FGaitSettings
 	                                   const FRotator& ActorRotation) const
 	{
 		const float Dir{FGASPMath::CalculateDirection(Velocity, ActorRotation)};
-		const float StrafeSpeedMap{StrafeCurve.IsValid() ? StrafeCurve->GetFloatValue(FMath::Abs(Dir)) : 0.f};
+		const float StrafeSpeedMap{IsValid(StrafeCurve) ? StrafeCurve->GetFloatValue(FMath::Abs(Dir)) : 0.f};
 
 		if (StrafeSpeedMap < 1.f)
 		{
@@ -65,9 +65,9 @@ protected:
 	FVector CrouchSpeed{225.f, 200.f, 180.f};
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TWeakObjectPtr<UCurveFloat> StrafeCurve{};
+	TObjectPtr<UCurveFloat> StrafeCurve{};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TWeakObjectPtr<UCurveVector> MovementCurve{};
+	TObjectPtr<UCurveVector> MovementCurve{};
 };
 
 /**
