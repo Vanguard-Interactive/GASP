@@ -27,17 +27,23 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMovementModeChanged, FGameplayTag
 
 class UGASPCharacterMovementComponent;
 
-UCLASS(Abstract)
+UCLASS()
 class GASP_API AGASPCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
+	FTimerHandle LandedHandle;
+
+
 	UFUNCTION(BlueprintSetter)
-	void SetMovementMode(FGameplayTag NewMovementMode, bool bForce = false);
+	void SetMovementMode(const FGameplayTag NewMovementMode, bool bForce = false);
 	UFUNCTION(Server, Reliable)
-	void Server_SetMovementMode(FGameplayTag NewMovementMode);
+	void Server_SetMovementMode(const FGameplayTag NewMovementMode);
 
 protected:
+	UPROPERTY(EditAnywhere, Category="PoseSearchData|Choosers", BlueprintReadOnly)
+	TObjectPtr<UChooserTable> OverlayTable{nullptr};
+
 	UPROPERTY(BlueprintReadOnly, Transient)
 	TObjectPtr<UGASPCharacterMovementComponent> MovementComponent{};
 
@@ -59,17 +65,17 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Transient)
 	EGait Gait{EGait::Run};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Transient)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_RotationMode, Transient)
 	ERotationMode RotationMode{ERotationMode::Strafe};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Transient)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_MovementState, Transient)
 	EMovementState MovementState{EMovementState::Idle};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Transient)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_MovementMode, Transient)
 	FGameplayTag MovementMode{MovementModeTags::Grounded};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Transient)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_StanceMode, Transient)
 	FGameplayTag StanceMode{StanceTags::Standing};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Transient)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_OverlayMode, Transient)
 	FGameplayTag OverlayMode{OverlayModeTags::Default};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Replicated, Transient)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_LocomotionAction, Transient)
 	FGameplayTag LocomotionAction{FGameplayTag::EmptyTag};
 
 	UPROPERTY(BlueprintReadOnly, Transient)
@@ -111,7 +117,9 @@ protected:
 	                    const float PitchMultiplier = 1.f);
 
 	virtual void OnJumped_Implementation() override;
+
 	virtual void Landed(const FHitResult& Hit) override;
+
 	/** Please add a function description */
 	UFUNCTION(BlueprintPure, Category = "Traversal")
 	FTraversalCheckInputs GetTraversalCheckInputs() const;
@@ -150,6 +158,9 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnMovementModeChanged MovementModeChanged;
 
+	UFUNCTION(BlueprintNativeEvent)
+	void OnOverlayModeChanged(const FGameplayTag OldOverlayMode);
+
 	// Sets default values for this character's properties
 	explicit AGASPCharacter(const FObjectInitializer& ObjectInitializer);
 	AGASPCharacter() = default;
@@ -174,32 +185,33 @@ public:
 	 *		Movement States		*
 	 ****************************/
 	UFUNCTION(BlueprintCallable)
-	void SetGait(EGait NewGait, bool bForce = false);
+	void SetGait(const EGait NewGait, bool bForce = false);
 
 	UFUNCTION(BlueprintCallable)
-	void SetDesiredGait(EGait NewGait, bool bForce = false);
+	void SetDesiredGait(const EGait NewGait, bool bForce = false);
 	UFUNCTION(Server, Reliable)
-	void Server_SetDesiredGait(EGait NewGait);
+	void Server_SetDesiredGait(const EGait NewGait);
 
 	UFUNCTION(BlueprintCallable)
 	void SetRotationMode(const ERotationMode NewRotationMode, const bool bForce = false);
 	UFUNCTION(Server, Reliable)
-	void Server_SetRotationMode(ERotationMode NewRotationMode);
+	void Server_SetRotationMode(const ERotationMode NewRotationMode);
 
 	UFUNCTION(BlueprintCallable)
 	void SetMovementState(const EMovementState NewMovementState, const bool bForce = false);
 	UFUNCTION(Server, Reliable)
-	void Server_SetMovementState(EMovementState NewMovementState);
+	void Server_SetMovementState(const EMovementState NewMovementState);
 
 	UFUNCTION(BlueprintCallable)
 	void SetStanceMode(const FGameplayTag NewStanceMode, const bool bForce = false);
 	UFUNCTION(Server, Reliable)
-	void Server_SetStanceMode(FGameplayTag NewStanceMode);
+	void Server_SetStanceMode(const FGameplayTag NewStanceMode);
 
 	UFUNCTION(BlueprintCallable)
 	void SetOverlayMode(const FGameplayTag NewOverlayMode, const bool bForce = false);
 	UFUNCTION(Server, Reliable)
 	void Server_SetOverlayMode(const FGameplayTag NewOverlayMode);
+
 
 	UFUNCTION(BlueprintCallable)
 	void SetLocomotionAction(const FGameplayTag NewLocomotionAction, const bool bForce = false);
@@ -258,9 +270,7 @@ public:
 		return StanceMode;
 	}
 
-
 	// Ragdolling
-
 	bool IsRagdollingAllowedToStart() const;
 
 	const FRagdollingState& GetRagdollingState() const
@@ -280,6 +290,21 @@ private:
 
 	void StartRagdollingImplementation();
 
+	UFUNCTION()
+	void OnRep_OverlayMode(const FGameplayTag& OldOverlayMode);
+	UFUNCTION()
+	void OnRep_Gait(const EGait& OldGait);
+	UFUNCTION()
+	void OnRep_StanceMode(const FGameplayTag& OldStanceMode);
+	UFUNCTION()
+	void OnRep_MovementMode(const FGameplayTag& OldMovementMode);
+	UFUNCTION()
+	void OnRep_RotationMode(const ERotationMode& OldRotationMode);
+	UFUNCTION()
+	void OnRep_MovementState(const EMovementState& OldMovementState);
+	UFUNCTION()
+	void OnRep_LocomotionAction(const FGameplayTag& OldLocomotionAction);
+
 public:
 	bool IsRagdollingAllowedToStop() const;
 
@@ -290,6 +315,9 @@ public:
 	void OnStartRagdolling();
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnStopRagdolling();
+
+	UPROPERTY(BlueprintReadOnly)
+	FGameplayTagContainer StateContainer;
 
 private:
 	UFUNCTION(Server, Reliable)

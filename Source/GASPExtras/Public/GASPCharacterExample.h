@@ -11,7 +11,7 @@ class GASPEXTRAS_API AGASPCharacterExample : public AGASPCharacter
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess))
 	TObjectPtr<class UGameplayCameraComponent> GameplayCamera{};
 
 protected:

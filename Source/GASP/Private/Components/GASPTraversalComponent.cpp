@@ -24,13 +24,6 @@ namespace
 	const FName NAME_BackFloor{TEXT("BackFloor")};
 	const FName NAME_DistanceFromLedge{TEXT("Distance_From_Ledge")};
 	const FName NAME_PoseHistory{TEXT("PoseHistory")};
-
-#if WITH_EDITOR && ALLOW_CONSOLE
-	IConsoleVariable* DrawDebugLevelVar = IConsoleManager::Get().FindConsoleVariable(
-		TEXT("DDCvar.Traversal.DrawDebugLevel"));
-	IConsoleVariable* DrawDebugDurationVar = IConsoleManager::Get().FindConsoleVariable(
-		TEXT("DDCvar.Traversal.DrawDebugDuration"));
-#endif
 }
 
 // Sets default values for this component's properties
@@ -161,11 +154,6 @@ FTraversalResult UGASPTraversalComponent::TryTraversalAction(FTraversalCheckInpu
 	const FVector& ActorLocation = CharacterOwner->GetActorLocation();
 	const float& CapsuleRadius = CapsuleComponent.IsValid() ? CapsuleComponent->GetScaledCapsuleRadius() : 30.f;
 	const float& CapsuleHalfHeight = CapsuleComponent.IsValid() ? CapsuleComponent->GetScaledCapsuleHalfHeight() : 60.f;
-
-#if WITH_EDITOR && ALLOW_CONSOLE
-	const int32& DrawDebugLevel = DrawDebugLevelVar ? DrawDebugLevelVar->GetInt() : 0;
-	const float& DrawDebugDuration = DrawDebugDurationVar ? DrawDebugDurationVar->GetFloat() : 0;
-#endif
 
 	FTraversalCheckResult NewTraversalCheckResult;
 

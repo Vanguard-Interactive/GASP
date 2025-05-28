@@ -5,6 +5,16 @@
 #include "InputMappingContext.h"
 #include "GASPCharacterExample.h"
 
+TSoftObjectPtr<UInputMappingContext> AGASPPlayerControllerExample::GetDefaultInputMapping()
+{
+	return DefaultInputMapping;
+}
+
+AGASPCharacterExample* AGASPPlayerControllerExample::GetPossessedPlayer()
+{
+	return PossessedPlayer;
+}
+
 void AGASPPlayerControllerExample::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);

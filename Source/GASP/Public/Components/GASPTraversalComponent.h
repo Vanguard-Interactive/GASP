@@ -172,6 +172,14 @@ public:
 	// Sets default values for this component's properties
 	UGASPTraversalComponent();
 
+#if WITH_EDITORONLY_DATA
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	int32 DrawDebugLevel{0};
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	float DrawDebugDuration{0.f};
+#endif
+	
 protected:
 	/**
 	 * Callback executed when chooser data is asynchronously loaded

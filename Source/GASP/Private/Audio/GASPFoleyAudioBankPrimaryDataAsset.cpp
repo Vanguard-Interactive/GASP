@@ -35,7 +35,6 @@ void UGASPFoleyAudioBankPrimaryDataAsset::PreloadSoundsAsync()
 
 void UGASPFoleyAudioBankPrimaryDataAsset::HandleAssetsLoaded()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Loaded"))
 	StreamableHandle.Reset();
 	OnSoundsPreloaded.Broadcast();
 }

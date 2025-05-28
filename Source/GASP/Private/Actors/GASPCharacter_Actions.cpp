@@ -1,5 +1,4 @@
-﻿#include "PlayMontageCallbackProxy.h"
-#include "Actors/GASPCharacter.h"
+﻿#include "Actors/GASPCharacter.h"
 #include "Animation/GASPAnimInstance.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/GASPCharacterMovementComponent.h"
@@ -67,7 +66,6 @@ void AGASPCharacter::StartRagdollingImplementation()
 	}
 
 	// Stop any active montages.
-
 	static constexpr auto BlendOutDuration{0.2f};
 
 	if (IsValid(GetMesh()->GetAnimInstance()))
@@ -428,7 +426,7 @@ void AGASPCharacter::StopRagdollingImplementation()
 		MovementComponent->SetMovementMode(MOVE_Falling);
 		MovementComponent->Velocity = RagdollingState.Velocity;
 	}
-	
+
 	SetLocomotionAction(FGameplayTag::EmptyTag);
 
 	AnimationInstance->Montage_Play(SelectGetUpMontage(bRagdollFacingUpward));

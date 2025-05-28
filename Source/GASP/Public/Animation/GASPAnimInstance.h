@@ -50,13 +50,15 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "CharacterInfromation|States", BlueprintReadOnly, Transient)
 	EGait Gait{};
 	UPROPERTY(VisibleAnywhere, Category = "CharacterInfromation|States", BlueprintReadOnly, Transient)
-	FGameplayTagContainer StanceMode{};
-	UPROPERTY(VisibleAnywhere, Category = "CharacterInfromation|States", BlueprintReadOnly, Transient)
 	EMovementState MovementState{};
 	UPROPERTY(VisibleAnywhere, Category = "CharacterInfromation|States", BlueprintReadOnly, Transient)
 	ERotationMode RotationMode{};
 	UPROPERTY(VisibleAnywhere, Category = "CharacterInfromation|States", BlueprintReadOnly, Transient)
-	FGameplayTagContainer MovementMode{};
+	FGameplayTag MovementMode{};
+	UPROPERTY(VisibleAnywhere, Category = "CharacterInfromation|States", BlueprintReadOnly, Transient)
+	FGameplayTag StanceMode{};
+	UPROPERTY(VisibleAnywhere, Category = "CharacterInfromation|States", BlueprintReadOnly, Transient)
+	FGameplayTagContainer StateContainer{};
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|General", Transient)
 	FCharacterInfo CharacterInfo{};
@@ -72,7 +74,7 @@ protected:
 	FBlendStackMachine BlendStackMachine;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
-	FGameplayTagContainer PreviousStanceMode{};
+	FGameplayTag PreviousStanceMode{};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
 	EGait PreviousGait{EGait::Run};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
@@ -80,19 +82,14 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
 	ERotationMode PreviousRotationMode{ERotationMode::OrientToMovement};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
-	FGameplayTagContainer PreviousMovementMode{MovementModeTags::Grounded};
+	FGameplayTag PreviousMovementMode{MovementModeTags::Grounded};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
 	FCharacterInfo PreviousCharacterInfo;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
 	FGameplayTag PreviousLocomotionAction{FGameplayTag::EmptyTag};
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient)
-	FGameplayTagContainer OverlayMode{OverlayModeTags::Default};
-
 	UPROPERTY(EditAnywhere, Category="PoseSearchData|Choosers", BlueprintReadOnly)
 	TObjectPtr<class UChooserTable> LocomotionTable{nullptr};
-	UPROPERTY(EditAnywhere, Category="PoseSearchData|Choosers", BlueprintReadOnly)
-	TObjectPtr<UChooserTable> OverlayTable{nullptr};
 	UPROPERTY(EditAnywhere, Category="PoseSearchData|Choosers", BlueprintReadOnly)
 	TObjectPtr<UChooserTable> StateMachineTable{nullptr};
 
@@ -169,8 +166,6 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Runtime", meta = (BlueprintThreadSafe))
 	void RefreshRagdollValues(const float DeltaSeconds);
 	UFUNCTION(BlueprintCallable, Category = "Runtime", meta = (BlueprintThreadSafe))
-	virtual void RefreshCVar();
-	UFUNCTION(BlueprintCallable, Category = "Runtime", meta = (BlueprintThreadSafe))
 	void RefreshTrajectory(float DeltaSeconds);
 	UFUNCTION(BlueprintCallable, Category = "Runtime", meta = (BlueprintThreadSafe))
 	void RefreshMovementDirection(float DeltaSeconds);
@@ -182,10 +177,11 @@ protected:
 	float HeavyLandSpeedThreshold{700.f};
 	UPROPERTY(EditAnywhere, Category = "MovementInformation|General", BlueprintReadOnly)
 	bool bLanded{false};
-	UPROPERTY(EditAnywhere, Category = "MovementInformation|General", BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, Category = "MovementInformation|General", BlueprintReadOnly,
+		meta=(EditCondition="!bUseExperimentalStateMachine"))
 	int32 MMDatabaseLOD{0};
 	UPROPERTY(EditAnywhere, Category = "MovementInformation|General", BlueprintReadOnly)
-	uint8 bOffsetRootBoneEnabled : 1 {false};
+	uint8 bOffsetRootBoneEnabled : 1 {true};
 	UPROPERTY(EditAnywhere, Category = "MovementInformation|General", BlueprintReadOnly)
 	uint8 bUseExperimentalStateMachine : 1 {false};
 
@@ -197,9 +193,6 @@ public:
 
 	UFUNCTION()
 	void OnLanded(const FHitResult& HitResult);
-
-	UFUNCTION()
-	void OnOverlayModeChanged(const FGameplayTag OldOverlayMode);
 
 	UFUNCTION(BlueprintPure, Category = "BlendStack", meta = (BlueprintThreadSafe))
 	EPoseSearchInterruptMode GetMatchingInterruptMode() const;
@@ -232,21 +225,22 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Additive|Layering", BlueprintReadOnly)
 	FLayeringState LayeringState;
-	
+
 public:
 	UGASPAnimInstance() = default;
 
 	virtual void NativeBeginPlay() override;
 	virtual void NativeInitializeAnimation() override;
-
+	virtual void PreUpdateAnimation(float DeltaSeconds) override;
 	virtual void NativeThreadSafeUpdateAnimation(float DeltaSeconds) override;
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
-	virtual void PreUpdateAnimation(float DeltaSeconds) override;
 
 	UFUNCTION(BlueprintPure, Category = "BlendStack", meta = (BlueprintThreadSafe))
 	float GetMatchingNotifyRecencyTimeOut() const;
 	UFUNCTION(BlueprintPure, Category = "BlendStack", meta = (BlueprintThreadSafe))
 	float GetMatchingBlendTime() const;
+	UFUNCTION(BlueprintPure, Category = "BlendStack", meta = (BlueprintThreadSafe))
+	FFloatInterval GetMatchingPlayRate() const;
 	UFUNCTION(BlueprintGetter, meta = (BlueprintThreadSafe))
 	FFootPlacementPlantSettings GetPlantSettings() const;
 	UFUNCTION(BlueprintGetter, meta = (BlueprintThreadSafe))
@@ -259,7 +253,7 @@ public:
 	FORCEINLINE EGait GetGait() const { return Gait; }
 
 	UFUNCTION(BlueprintGetter, Category = "Movement|Analys", meta = (BlueprintThreadSafe))
-	FORCEINLINE FGameplayTag GetStanceMode() const { return StanceMode.First(); }
+	FORCEINLINE FGameplayTag GetStanceMode() const { return StanceMode; }
 
 	UFUNCTION(BlueprintGetter, Category = "Movement|Analys", meta = (BlueprintThreadSafe))
 	FORCEINLINE EMovementState GetMovementState() const { return MovementState; }
@@ -268,7 +262,7 @@ public:
 	FORCEINLINE ERotationMode GetRotationMode() const { return RotationMode; }
 
 	UFUNCTION(BlueprintGetter, Category = "Movement|Analys", meta = (BlueprintThreadSafe))
-	FORCEINLINE FGameplayTag GetMovementMode() const { return MovementMode.First(); }
+	FORCEINLINE FGameplayTag GetMovementMode() const { return MovementMode; }
 
 	FPoseSnapshot& SnapshotFinalRagdollPose();
 

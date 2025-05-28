@@ -20,7 +20,7 @@ class GASP_API UGASPFoleyAudioBankPrimaryDataAsset : public UPrimaryDataAsset
 	TSharedPtr<FStreamableHandle> StreamableHandle;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Foley|Audio")
-	TMap<FGameplayTag, TSoftObjectPtr<USoundBase>> FoleyPrimaryData;
+	TMap<FGameplayTag, TSoftObjectPtr<USoundAttenuation>> FoleyPrimaryData;
 
 public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSoundsPreloaded);
