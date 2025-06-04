@@ -4,7 +4,7 @@
 |--------------------------------------------------------------------|-----------------------|
 | [1.2](https://github.com/Anaylan/GASP-Refactored/releases/tag/1.2) | 5.5                   |
 | [1.3](https://github.com/Anaylan/GASP-Refactored/releases/tag/1.3) | 5.5                   |
-| [1.3](https://github.com/Anaylan/GASP-Refactored/releases/tag/1.4) | 5.6                   |
+| [1.4](https://github.com/Anaylan/GASP-Refactored/releases/tag/1.4) | 5.6                   |
 
 **The plugin is developed and tested primarily on Windows, so use it on other platforms at your own risk.**
 
