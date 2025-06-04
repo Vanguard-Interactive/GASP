@@ -11,7 +11,6 @@
 #include "BoneControllers/AnimNode_OffsetRootBone.h"
 #include "BoneControllers/AnimNode_OrientationWarping.h"
 #include "PoseSearch/PoseSearchLibrary.h"
-#include "PoseSearch/PoseSearchTrajectoryTypes.h"
 #include "PoseSearch/PoseSearchTrajectoryLibrary.h"
 #include "Types/StructTypes.h"
 #include "GASPAnimInstance.generated.h"
@@ -94,7 +93,7 @@ protected:
 	TObjectPtr<UChooserTable> StateMachineTable{nullptr};
 
 	UPROPERTY(EditAnywhere, Category="PoseSearchData|Trajectory", BlueprintReadOnly, Transient)
-	FPoseSearchQueryTrajectory Trajectory{};
+	FTransformTrajectory Trajectory{};
 	UPROPERTY(EditAnywhere, Category="PoseSearchData|Trajectory", BlueprintReadOnly, Transient)
 	FPoseSearchTrajectoryData TrajectoryGenerationData_Idle{};
 	UPROPERTY(EditAnywhere, Category="PoseSearchData|Trajectory", BlueprintReadOnly, Transient)

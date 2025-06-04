@@ -542,7 +542,6 @@ void AGASPCharacter::OnOverlayModeChanged_Implementation(const FGameplayTag OldO
 	}
 }
 
-
 void AGASPCharacter::OnRep_OverlayMode(const FGameplayTag& OldOverlayMode)
 {
 	OverlayModeChanged.Broadcast(OldOverlayMode);

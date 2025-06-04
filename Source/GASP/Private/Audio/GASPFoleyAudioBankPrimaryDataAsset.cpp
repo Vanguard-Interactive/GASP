@@ -8,7 +8,7 @@
 
 TSoftObjectPtr<USoundBase> UGASPFoleyAudioBankPrimaryDataAsset::GetSoundFromEvent(const FGameplayTag Event)
 {
-	const TSoftObjectPtr<USoundBase>& SoundEffect = FoleyPrimaryData.FindRef(Event);
+	const auto SoundEffect = FoleyPrimaryData.FindRef(Event);
 
 	return SoundEffect;
 }

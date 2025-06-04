@@ -164,12 +164,17 @@ void UGASPAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 	StateContainer.RemoveTag(PreviousStanceMode);
 	StateContainer.AddTag(CachedCharacter->GetStanceMode());
 
+
 	RefreshEssentialValues(DeltaSeconds);
 	RefreshTrajectory(DeltaSeconds);
-	RefreshMovementDirection(DeltaSeconds);
 	RefreshOverlaySettings(DeltaSeconds);
 	RefreshLayering(DeltaSeconds);
+	RefreshMovementDirection(DeltaSeconds);
 	RefreshTargetRotation();
+
+	if (bUseExperimentalStateMachine)
+	{
+	}
 
 	if (LocomotionAction == LocomotionActionTags::Ragdoll)
 	{
@@ -215,21 +220,24 @@ void UGASPAnimInstance::RefreshTrajectory(const float DeltaSeconds)
 			? TrajectoryGenerationData_Moving
 			: TrajectoryGenerationData_Idle
 	};
-	FPoseSearchQueryTrajectory OutTrajectory{};
-
-	UPoseSearchTrajectoryLibrary::PoseSearchGenerateTrajectory(this, TrajectoryData, DeltaSeconds, Trajectory,
-	                                                           BlendStack.PreviousDesiredYawRotation, OutTrajectory,
-	                                                           -1.f, 30, .1f, 15);
+	FTransformTrajectory OutTrajectory{};
+	UPoseSearchTrajectoryLibrary::PoseSearchGenerateTransformTrajectory(this, TrajectoryData, DeltaSeconds, Trajectory,
+	                                                                    BlendStack.PreviousDesiredYawRotation,
+	                                                                    OutTrajectory,
+	                                                                    -1.f, 30, .1f, 15);
 
 	const TArray<AActor*> IgnoredActors{};
-	UPoseSearchTrajectoryLibrary::HandleTrajectoryWorldCollisions(
+	UPoseSearchTrajectoryLibrary::HandleTransformTrajectoryWorldCollisions(
 		CachedCharacter.Get(), this, OutTrajectory, true, .01f,
 		Trajectory, CollisionResults, TraceTypeQuery_MAX, false,
 		IgnoredActors, EDrawDebugTrace::None, true, 150.f);
 
-	UPoseSearchTrajectoryLibrary::GetTrajectoryVelocity(Trajectory, -.3f, -.2f, BlendStack.PreviousVelocity, false);
-	UPoseSearchTrajectoryLibrary::GetTrajectoryVelocity(Trajectory, .0f, .2f, BlendStack.CurrentVelocity, false);
-	UPoseSearchTrajectoryLibrary::GetTrajectoryVelocity(Trajectory, .4f, .5f, BlendStack.FutureVelocity, false);
+	UPoseSearchTrajectoryLibrary::GetTransformTrajectoryVelocity(Trajectory, -.3f, -.2f, BlendStack.PreviousVelocity,
+	                                                             false);
+	UPoseSearchTrajectoryLibrary::GetTransformTrajectoryVelocity(Trajectory, .0f, .2f, BlendStack.CurrentVelocity,
+	                                                             false);
+	UPoseSearchTrajectoryLibrary::GetTransformTrajectoryVelocity(Trajectory, .4f, .5f, BlendStack.FutureVelocity,
+	                                                             false);
 }
 
 void UGASPAnimInstance::RefreshMovementDirection(float DeltaSeconds)
@@ -264,7 +272,7 @@ FFloatInterval UGASPAnimInstance::GetMatchingPlayRate() const
 {
 	if (MovementMode == MovementModeTags::Grounded)
 	{
-		return {.25f, 3.f};
+		return {.4f, 3.f};
 	}
 	return {.75f, 1.25f};
 }
@@ -314,8 +322,17 @@ bool UGASPAnimInstance::IsPivoting() const
 		return false;
 	}
 
+	if (!bUseExperimentalStateMachine)
+	{
+		return FMath::Abs(GetTrajectoryTurnAngle()) >= (RotationMode == ERotationMode::OrientToMovement ? 45.f : 30.f);
+	}
+
 	auto InRange = [this](const float Speed)
 	{
+		if (StanceMode == StanceTags::Crouching)
+		{
+			return Speed > 50.f && Speed < 200.f;
+		}
 		static const TMap<EGait, FVector2D> GaitRanges = {
 			{EGait::Walk, {50.f, 200.f}},
 			{EGait::Run, {200.f, 550.f}},
@@ -711,7 +728,7 @@ void UGASPAnimInstance::SetBlendStackAnimFromChooser(const FAnimNodeReference& N
 
 		SearchCost = PoseSearchResult.SearchCost;
 
-		auto AnimationAsset = static_cast<UAnimationAsset*>(PoseSearchResult.SelectedAnimation);
+		auto AnimationAsset = static_cast<UAnimationAsset*>(PoseSearchResult.SelectedAnim);
 
 		const bool NoValidAnim = ChooserOutputs.MMCostLimit > 0.f
 			                         ? PoseSearchResult.SearchCost <= ChooserOutputs.MMCostLimit

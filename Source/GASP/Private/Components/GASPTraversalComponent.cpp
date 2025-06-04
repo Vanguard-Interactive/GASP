@@ -390,7 +390,7 @@ FTraversalResult UGASPTraversalComponent::TryTraversalAction(FTraversalCheckInpu
 	FPoseSearchBlueprintResult Result;
 	UPoseSearchLibrary::MotionMatch(AnimInstance.Get(), AnimationMontages, NAME_PoseHistory,
 	                                FPoseSearchContinuingProperties(), FPoseSearchFutureProperties(), Result);
-	const UAnimMontage* AnimationMontage = Cast<UAnimMontage>(Result.SelectedAnimation);
+	const UAnimMontage* AnimationMontage = Cast<UAnimMontage>(Result.SelectedAnim);
 	if (!IsValid(AnimationMontage))
 	{
 #if WITH_EDITOR && ALLOW_CONSOLE
@@ -668,6 +668,7 @@ FCollisionQueryParams UGASPTraversalComponent::GetQueryParams() const
 bool UGASPTraversalComponent::CompareTag(TArray<FName> TagsToCompare, const FGameplayTag& RootTag) const
 {
 	const FName* TagToCheck = BannedTags.Find(RootTag);
+
 	if (!TagToCheck || !TagToCheck->IsValid())
 	{
 		return false;

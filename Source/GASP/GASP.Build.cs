@@ -8,7 +8,7 @@ public class GASP : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Latest;
-		bEnableNonInlinedGenCppWarnings = true;
+		CppCompileWarningSettings.NonInlinedGenCppWarningLevel = WarningLevel.Warning;
 
 		PublicDependencyModuleNames.AddRange(new string[]
 		{

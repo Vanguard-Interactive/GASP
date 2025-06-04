@@ -10,7 +10,7 @@ AGASPCharacterExample::AGASPCharacterExample(const FObjectInitializer& ObjectIni
 {
 	bReplicates = true;
 
-	GameplayCamera = CreateDefaultSubobject<UGameplayCameraComponent>(TEXT("GameplayCamera"));	
+	GameplayCamera = CreateDefaultSubobject<UGameplayCameraComponent>(TEXT("GameplayCamera"));
 	GameplayCamera->SetIsReplicated(true);
 
 	if (GetMesh())
@@ -22,22 +22,22 @@ AGASPCharacterExample::AGASPCharacterExample(const FObjectInitializer& ObjectIni
 
 void AGASPCharacterExample::PossessedBy(AController* NewController)
 {
-	Super::PossessedBy(NewController);
-
 	if (APlayerController* PC = Cast<APlayerController>(NewController))
 	{
 		GameplayCamera->ActivateCameraForPlayerController(PC);
 	}
+
+	Super::PossessedBy(NewController);
 }
 
 void AGASPCharacterExample::OnRep_Controller()
 {
-	Super::OnRep_Controller();
-
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
 		GameplayCamera->ActivateCameraForPlayerController(PC);
 	}
+
+	Super::OnRep_Controller();
 }
 
 void AGASPCharacterExample::SprintAction(bool bPressed)

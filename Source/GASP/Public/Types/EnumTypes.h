@@ -117,8 +117,8 @@ UENUM(BlueprintType, meta = (ScriptName = "ECameraMode"))
 enum class ECameraMode : uint8
 {
 	FreeCam,
-	ArmRight,
-	ArmLeft
+	Strafe,
+	Aim
 };
 
 UENUM(BlueprintType, meta = (ScriptName = "ECameraStyle"))
@@ -135,7 +135,6 @@ enum class EViewMode : uint8
 	FirstPerson,
 	ThirdPerson
 };
-
 
 UENUM(BlueprintType, meta = (ScriptName = "EAnalogStickBehaviorMode"))
 enum class EAnalogStickBehaviorMode : uint8
