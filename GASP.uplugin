@@ -1,7 +1,7 @@
 {
   "FileVersion": 3,
   "Version": 2,
-  "VersionName": "1.4",
+  "VersionName": "1.5",
   "FriendlyName": "Game Animation Sample Refactored",
   "Description": "Reworked and improved С++ version of Game Animation Sample",
   "Category": "Animation",
