@@ -16,10 +16,11 @@ class GASP_API UGASPLinkedAnimInstance : public UAnimInstance
 	GENERATED_BODY()
 
 protected:
-	UPROPERTY(VisibleAnywhere, Category = "State", Transient)
-	TWeakObjectPtr<class UGASPAnimInstance> Parent;
+	UPROPERTY(Category = "State", BlueprintGetter = GetParent, Transient, meta = (NeverAsPin))
+	TObjectPtr<class UGASPAnimInstance> Parent;
 
-	UPROPERTY(VisibleAnywhere, Category = "State", Transient)
+	UPROPERTY(Category = "State", BlueprintGetter = GetCharacter, Transient,
+		meta = (NeverAsPin))
 	TObjectPtr<class AGASPCharacter> Character;
 
 public:

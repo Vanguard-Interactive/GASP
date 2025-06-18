@@ -176,13 +176,13 @@ struct GASP_API FAnimUtilityNames
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
 	FName LayeringHandRightName{TEXT("Layering_Hand_R")};
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
-	FName LayeringHandLeftIKName{TEXT("Enable_HandIK_L")};
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
 	FName LayeringArmLeftName{TEXT("Layering_Arm_L")};
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
-	FName LayeringHandRightIKName{TEXT("Enable_HandIK_R")};
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
 	FName LayeringArmRightName{TEXT("Layering_Arm_R")};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
+	FName LayeringHandLeftIKName{TEXT("Enable_HandIK_L")};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
+	FName LayeringHandRightIKName{TEXT("Enable_HandIK_R")};
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")
 	FName LayeringArmLeftLocalSpaceName{TEXT("Layering_Arm_L_LS")};
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layering|Names")

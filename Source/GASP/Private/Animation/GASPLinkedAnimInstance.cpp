@@ -24,7 +24,7 @@ void UGASPLinkedAnimInstance::NativeInitializeAnimation()
 	if (IsValid(World) && !World->IsGameWorld())
 	{
 		// Use default objects for editor preview.
-		if (!Parent.IsValid())
+		if (!IsValid(Parent))
 		{
 			Parent = GetMutableDefault<UGASPAnimInstance>();
 		}
@@ -49,7 +49,7 @@ AGASPCharacter* UGASPLinkedAnimInstance::GetCharacter() const
 
 EGait UGASPLinkedAnimInstance::GetGait() const
 {
-	if (Parent.IsValid())
+	if (IsValid(Parent))
 	{
 		return Parent->GetGait();
 	}
@@ -58,7 +58,7 @@ EGait UGASPLinkedAnimInstance::GetGait() const
 
 EMovementState UGASPLinkedAnimInstance::GetMovementState() const
 {
-	if (Parent.IsValid())
+	if (IsValid(Parent))
 	{
 		return Parent->GetMovementState();
 	}
@@ -67,7 +67,7 @@ EMovementState UGASPLinkedAnimInstance::GetMovementState() const
 
 FGameplayTag UGASPLinkedAnimInstance::GetMovementMode() const
 {
-	if (Parent.IsValid())
+	if (IsValid(Parent))
 	{
 		return Parent->GetMovementMode();
 	}
@@ -76,7 +76,7 @@ FGameplayTag UGASPLinkedAnimInstance::GetMovementMode() const
 
 FGameplayTag UGASPLinkedAnimInstance::GetStanceMode() const
 {
-	if (Parent.IsValid())
+	if (IsValid(Parent))
 	{
 		return Parent->GetStanceMode();
 	}
@@ -85,7 +85,7 @@ FGameplayTag UGASPLinkedAnimInstance::GetStanceMode() const
 
 ERotationMode UGASPLinkedAnimInstance::GetRotationMode() const
 {
-	if (Parent.IsValid())
+	if (IsValid(Parent))
 	{
 		return Parent->GetRotationMode();
 	}
@@ -94,7 +94,7 @@ ERotationMode UGASPLinkedAnimInstance::GetRotationMode() const
 
 FCharacterInfo UGASPLinkedAnimInstance::GetCharacterInfo() const
 {
-	if (Parent.IsValid())
+	if (IsValid(Parent))
 	{
 		return Parent->GetCharacterInfo();
 	}

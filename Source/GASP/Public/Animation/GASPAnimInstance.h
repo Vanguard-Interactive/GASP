@@ -190,8 +190,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "AimOffset", meta = (BlueprintThreadSafe))
 	FVector2D GetAOValue() const;
 
+	UFUNCTION(BlueprintPure, Category = "Overlay", meta = (BlueprintThreadSafe))
+	bool CanOverlayTransition() const;
+
 	UFUNCTION()
 	void OnLanded(const FHitResult& HitResult);
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnOverlayChanged(FGameplayTag OldOverlayMode);
 
 	UFUNCTION(BlueprintPure, Category = "BlendStack", meta = (BlueprintThreadSafe))
 	EPoseSearchInterruptMode GetMatchingInterruptMode() const;
