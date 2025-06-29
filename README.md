@@ -24,6 +24,7 @@ For more information, see the [Releases](https://github.com/Anaylan/GASP-Refacto
 | [1.3](https://github.com/Anaylan/GASP-Refactored/releases/tag/1.3) | 5.5                   |
 | [1.4](https://github.com/Anaylan/GASP-Refactored/releases/tag/1.4) | 5.6                   |
 | [1.5](https://github.com/Anaylan/GASP-Refactored/releases/tag/1.5) | 5.6                   |
+| [1.6](https://github.com/Anaylan/GASP-Refactored/releases/tag/1.6) | 5.6                   |
 
 **The plugin is developed and tested primarily on Windows, so use it on other platforms at your own risk.**
 

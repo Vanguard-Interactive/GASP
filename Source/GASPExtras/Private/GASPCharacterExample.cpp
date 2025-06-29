@@ -134,3 +134,26 @@ void AGASPCharacterExample::StrafeAction(bool bPressed)
 		SetRotationMode(ERotationMode::OrientToMovement);
 	}
 }
+
+void AGASPCharacterExample::MoveAction(const FVector2D& Value)
+{
+	if (!IsLocallyControlled())
+	{
+		return;
+	}
+
+	const FRotator Rotation = GetControlRotation();
+	const auto YawRotation = FRotator(0.f, Rotation.Yaw, 0.f);
+	const FVector ForwardDirectionDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+	const FVector RightDirectionDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+
+	const FVector2D MovementInputScale = GetMovementInputScaleValue(Value);
+	AddMovementInput(ForwardDirectionDirection, MovementInputScale.X);
+	AddMovementInput(RightDirectionDirection, MovementInputScale.Y);
+}
+
+void AGASPCharacterExample::LookAction(const FVector2D& Value)
+{
+	AddControllerYawInput(Value.X);
+	AddControllerPitchInput(-1 * Value.Y);
+}

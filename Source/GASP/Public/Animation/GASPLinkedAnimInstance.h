@@ -38,7 +38,8 @@ public:
 	EGait GetGait() const;
 
 	UFUNCTION(BlueprintGetter, meta = (BlueprintThreadSafe))
-	EMovementState GetMovementState() const;
+	FGameplayTag
+ GetMovementState() const;
 
 	UFUNCTION(BlueprintGetter, meta = (BlueprintThreadSafe))
 	FGameplayTag GetMovementMode() const;

@@ -17,7 +17,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRotationModeChanged, ERotationMod
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGaitChanged, EGait, OldGait);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMovementStateChanged, EMovementState, OldMovementState);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMovementStateChanged, FGameplayTag
+                                            , OldMovementState);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStanceModeChanged, FGameplayTag, OldStanceMode);
 
@@ -68,7 +69,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_RotationMode, Transient)
 	ERotationMode RotationMode{ERotationMode::Strafe};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_MovementState, Transient)
-	EMovementState MovementState{EMovementState::Idle};
+	FGameplayTag MovementState{MovementStateTags::Idle};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_MovementMode, Transient)
 	FGameplayTag MovementMode{MovementModeTags::Grounded};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_StanceMode, Transient)
@@ -174,14 +175,6 @@ public:
 	virtual void OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
 
 	/****************************
-	 *		Input actions		*
-	 ****************************/
-	UFUNCTION(BlueprintCallable)
-	void MoveAction(const FVector2D& Value);
-	UFUNCTION(BlueprintCallable)
-	void LookAction(const FVector2D& Value);
-
-	/****************************
 	 *		Movement States		*
 	 ****************************/
 	UFUNCTION(BlueprintCallable)
@@ -198,9 +191,11 @@ public:
 	void Server_SetRotationMode(const ERotationMode NewRotationMode);
 
 	UFUNCTION(BlueprintCallable)
-	void SetMovementState(const EMovementState NewMovementState, const bool bForce = false);
+	void SetMovementState(const FGameplayTag
+	                      NewMovementState, const bool bForce = false);
 	UFUNCTION(Server, Reliable)
-	void Server_SetMovementState(const EMovementState NewMovementState);
+	void Server_SetMovementState(const FGameplayTag
+		NewMovementState);
 
 	UFUNCTION(BlueprintCallable)
 	void SetStanceMode(const FGameplayTag NewStanceMode, const bool bForce = false);
@@ -259,7 +254,8 @@ public:
 	}
 
 	UFUNCTION(BlueprintGetter)
-	FORCEINLINE EMovementState GetMovementState() const
+	FORCEINLINE FGameplayTag
+	GetMovementState() const
 	{
 		return MovementState;
 	}
@@ -301,7 +297,8 @@ private:
 	UFUNCTION()
 	void OnRep_RotationMode(const ERotationMode& OldRotationMode);
 	UFUNCTION()
-	void OnRep_MovementState(const EMovementState& OldMovementState);
+	void OnRep_MovementState(const FGameplayTag
+		& OldMovementState);
 	UFUNCTION()
 	void OnRep_LocomotionAction(const FGameplayTag& OldLocomotionAction);
 

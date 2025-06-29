@@ -49,7 +49,8 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "CharacterInfromation|States", BlueprintReadOnly, Transient)
 	EGait Gait{};
 	UPROPERTY(VisibleAnywhere, Category = "CharacterInfromation|States", BlueprintReadOnly, Transient)
-	EMovementState MovementState{};
+	FGameplayTag
+	MovementState{};
 	UPROPERTY(VisibleAnywhere, Category = "CharacterInfromation|States", BlueprintReadOnly, Transient)
 	ERotationMode RotationMode{};
 	UPROPERTY(VisibleAnywhere, Category = "CharacterInfromation|States", BlueprintReadOnly, Transient)
@@ -77,7 +78,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
 	EGait PreviousGait{EGait::Run};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
-	EMovementState PreviousMovementState{EMovementState::Idle};
+	FGameplayTag PreviousMovementState{MovementStateTags::Idle};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
 	ERotationMode PreviousRotationMode{ERotationMode::OrientToMovement};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "CharacterInformation|PreviousValues", Transient)
@@ -131,8 +132,6 @@ public:
 	bool JustLanded_Heavy() const;
 	UFUNCTION(BlueprintPure, Category="Movement|Analys", meta = (BlueprintThreadSafe))
 	bool JustTraversed() const;
-	UFUNCTION(BlueprintPure, Category="Movement|Analys", meta = (BlueprintThreadSafe))
-	float GetLandVelocity() const;
 	UFUNCTION(BlueprintPure, Category="Movement|Analys", meta = (BlueprintThreadSafe))
 	bool PlayLand() const;
 	UFUNCTION(BlueprintPure, Category="Movement|Analys", meta = (BlueprintThreadSafe))
@@ -260,7 +259,8 @@ public:
 	FORCEINLINE FGameplayTag GetStanceMode() const { return StanceMode; }
 
 	UFUNCTION(BlueprintGetter, Category = "Movement|Analys", meta = (BlueprintThreadSafe))
-	FORCEINLINE EMovementState GetMovementState() const { return MovementState; }
+	FORCEINLINE FGameplayTag
+	GetMovementState() const { return MovementState; }
 
 	UFUNCTION(BlueprintGetter, Category = "Movement|Analys", meta = (BlueprintThreadSafe))
 	FORCEINLINE ERotationMode GetRotationMode() const { return RotationMode; }

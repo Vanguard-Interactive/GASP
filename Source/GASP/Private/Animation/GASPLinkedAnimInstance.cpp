@@ -56,13 +56,15 @@ EGait UGASPLinkedAnimInstance::GetGait() const
 	return EGait();
 }
 
-EMovementState UGASPLinkedAnimInstance::GetMovementState() const
+FGameplayTag
+ UGASPLinkedAnimInstance::GetMovementState() const
 {
 	if (IsValid(Parent))
 	{
 		return Parent->GetMovementState();
 	}
-	return EMovementState();
+	return FGameplayTag
+();
 }
 
 FGameplayTag UGASPLinkedAnimInstance::GetMovementMode() const

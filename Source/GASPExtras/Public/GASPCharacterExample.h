@@ -42,4 +42,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Input|Actions")
 	virtual void StrafeAction(bool bPressed);
+
+	UFUNCTION(BlueprintCallable, Category="Input|Actions")
+	void MoveAction(const FVector2D& Value);
+	UFUNCTION(BlueprintCallable, Category="Input|Actions")
+	void LookAction(const FVector2D& Value);
 };

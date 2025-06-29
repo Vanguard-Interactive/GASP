@@ -42,16 +42,6 @@ enum class ERotationMode : uint8
 	Aim
 };
 
-/**
- *
- */
-UENUM(BlueprintType, meta = (ScriptName = "EMovementState"))
-enum class EMovementState : uint8
-{
-	Idle,
-	Moving
-};
-
 UENUM(BlueprintType, meta = (ScriptName = "EMovementDirection"))
 enum class EMovementDirection : uint8
 {
@@ -113,41 +103,18 @@ enum class ETraversalBlendOutCondition : uint8
 	IfFalling UMETA(DisplayName = "If Falling")
 };
 
-UENUM(BlueprintType, meta = (ScriptName = "ECameraMode"))
-enum class ECameraMode : uint8
-{
-	FreeCam,
-	Strafe,
-	Aim
-};
-
-UENUM(BlueprintType, meta = (ScriptName = "ECameraStyle"))
-enum class ECameraStyle : uint8
-{
-	Far,
-	Balanced,
-	Close
-};
-
-UENUM(BlueprintType, meta = (ScriptName = "EViewMode"))
-enum class EViewMode : uint8
-{
-	FirstPerson,
-	ThirdPerson
-};
-
 UENUM(BlueprintType, meta = (ScriptName = "EAnalogStickBehaviorMode"))
 enum class EAnalogStickBehaviorMode : uint8
 {
 	FixedSingleGait UMETA(DisplayName = "Fixed Speed - Single Gait",
-	                      Description = "Character will move at a fixed speed regardless of stick deflection."),
+		Description = "Character will move at a fixed speed regardless of stick deflection."),
 	FixedWalkRun UMETA(DisplayName = "Fixed Speed - Walk / Run",
-	                   Description =
-	                   "Character will move at a fixed walking speed with slight stick deflection, and a fixed running speed at full stick deflection."),
+		Description =
+		"Character will move at a fixed walking speed with slight stick deflection, and a fixed running speed at full stick deflection."),
 	VariableSingleGait UMETA(DisplayName = "Variable Speed - Single Gait",
-	                         Description =
-	                         "Full analog movement control with stick, character will remain walking or running based on gait input."),
+		Description =
+		"Full analog movement control with stick, character will remain walking or running based on gait input."),
 	VariableWalkRun UMETA(DisplayName = "Variable Speed - Walk / Run",
-	                      Description =
-	                      "Full analog movement control with stick, character will switch from walk to run gait based on stick deflection."),
+		Description =
+		"Full analog movement control with stick, character will switch from walk to run gait based on stick deflection."),
 };

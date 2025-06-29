@@ -1,7 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Actors/GASPCharacter.h"
-
 #include "ChooserFunctionLibrary.h"
 #include "MotionWarpingComponent.h"
 #include "GameplayTagContainer.h"
@@ -81,7 +80,7 @@ void AGASPCharacter::Tick(float DeltaTime)
 	}
 
 	const bool IsMoving = !MovementComponent->Velocity.IsNearlyZero(.1f) && !ReplicatedAcceleration.IsNearlyZero(10.f);
-	SetMovementState(IsMoving ? EMovementState::Moving : EMovementState::Idle);
+	SetMovementState(IsMoving ? MovementStateTags::Moving : MovementStateTags::Idle);
 
 	if (LocomotionAction == LocomotionActionTags::Ragdoll)
 	{
@@ -254,7 +253,8 @@ void AGASPCharacter::Server_SetDesiredGait_Implementation(const EGait NewGait)
 	SetDesiredGait(NewGait);
 }
 
-void AGASPCharacter::SetMovementState(const EMovementState NewMovementState, const bool bForce)
+void AGASPCharacter::SetMovementState(const FGameplayTag
+                                      NewMovementState, const bool bForce)
 {
 	if (!ensure(MovementComponent))
 	{
@@ -296,32 +296,10 @@ void AGASPCharacter::Server_SetStanceMode_Implementation(const FGameplayTag NewS
 	SetStanceMode(NewStanceMode);
 }
 
-void AGASPCharacter::Server_SetMovementState_Implementation(const EMovementState NewMovementState)
+void AGASPCharacter::Server_SetMovementState_Implementation(const FGameplayTag
+	NewMovementState)
 {
 	SetMovementState(NewMovementState);
-}
-
-void AGASPCharacter::MoveAction(const FVector2D& Value)
-{
-	if (!IsLocallyControlled())
-	{
-		return;
-	}
-
-	const FRotator Rotation = GetControlRotation();
-	const auto YawRotation = FRotator(0.f, Rotation.Yaw, 0.f);
-	const FVector ForwardDirectionDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-	const FVector RightDirectionDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-
-	const FVector2D MovementInputScale = GetMovementInputScaleValue(Value);
-	AddMovementInput(ForwardDirectionDirection, MovementInputScale.X);
-	AddMovementInput(RightDirectionDirection, MovementInputScale.Y);
-}
-
-void AGASPCharacter::LookAction(const FVector2D& Value)
-{
-	AddControllerYawInput(Value.X);
-	AddControllerPitchInput(-1 * Value.Y);
 }
 
 bool AGASPCharacter::CanSprint()
@@ -567,7 +545,8 @@ void AGASPCharacter::OnRep_RotationMode(const ERotationMode& OldRotationMode)
 	RotationModeChanged.Broadcast(OldRotationMode);
 }
 
-void AGASPCharacter::OnRep_MovementState(const EMovementState& OldMovementState)
+void AGASPCharacter::OnRep_MovementState(const FGameplayTag
+	& OldMovementState)
 {
 	MovementStateChanged.Broadcast(OldMovementState);
 }

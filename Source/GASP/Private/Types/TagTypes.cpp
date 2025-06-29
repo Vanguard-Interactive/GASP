@@ -57,3 +57,9 @@ namespace StanceTags
 	UE_DEFINE_GAMEPLAY_TAG(Standing, FName{TEXTVIEW("GASP.Stance.Standing")})
 	UE_DEFINE_GAMEPLAY_TAG(Crouching, FName{TEXTVIEW("GASP.Stance.Crouching")})
 }
+
+namespace MovementStateTags
+{
+	UE_DEFINE_GAMEPLAY_TAG(Moving, FName{TEXTVIEW("GASP.MovementState.Moving")});
+	UE_DEFINE_GAMEPLAY_TAG(Idle, FName{TEXTVIEW("GASP.MovementState.Idle")});
+}

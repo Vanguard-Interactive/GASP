@@ -19,7 +19,7 @@ void UGASPAnimInstance::OnLanded(const FHitResult& HitResult)
 {
 	bLanded = true;
 
-	GetWorld()->GetTimerManager().SetTimer(LandedHandle, FTimerDelegate::CreateWeakLambda(this, [this]()
+	GetWorld()->GetTimerManager().SetTimer(LandedHandle, FTimerDelegate::CreateLambda([this]()
 	{
 		bLanded = false;
 	}), .3f, false);
@@ -36,12 +36,23 @@ EPoseSearchInterruptMode UGASPAnimInstance::GetMatchingInterruptMode() const
 
 EOffsetRootBoneMode UGASPAnimInstance::GetOffsetRootRotationMode() const
 {
-	return IsSlotActive(AnimNames.AnimationSlotName) ? EOffsetRootBoneMode::Release : EOffsetRootBoneMode::Accumulate;
+	if (IsSlotActive(AnimNames.AnimationSlotName))
+	{
+		return EOffsetRootBoneMode::Release;
+	}
+
+	float YawDifference = CharacterInfo.ActorTransform.Rotator().Yaw - CharacterInfo.RootTransform.Rotator().Yaw;
+	YawDifference = FRotator::NormalizeAxis(YawDifference);
+
+	return !IsMoving() && RotationMode == ERotationMode::Aim && FMath::Abs(YawDifference) >= 90.f
+		       ? EOffsetRootBoneMode::LockOffsetAndConsumeAnimation
+		       : EOffsetRootBoneMode::Accumulate;
 }
 
 EOffsetRootBoneMode UGASPAnimInstance::GetOffsetRootTranslationMode() const
 {
-	if (IsSlotActive(AnimNames.AnimationSlotName) || MovementMode == MovementModeTags::InAir)
+	if (IsSlotActive(AnimNames.AnimationSlotName) || MovementMode == MovementModeTags::InAir || (!IsMoving() &&
+		RotationMode == ERotationMode::Aim))
 	{
 		return EOffsetRootBoneMode::Release;
 	}
@@ -161,10 +172,11 @@ void UGASPAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 	StanceMode = CachedCharacter->GetStanceMode();
 
 	StateContainer.RemoveTag(PreviousMovementMode);
-	StateContainer.AddTag(CachedCharacter->GetMovementMode());
+	StateContainer.AddTagFast(CachedCharacter->GetMovementMode());
 	StateContainer.RemoveTag(PreviousStanceMode);
-	StateContainer.AddTag(CachedCharacter->GetStanceMode());
-
+	StateContainer.AddTagFast(CachedCharacter->GetStanceMode());
+	StateContainer.RemoveTag(PreviousMovementState);
+	StateContainer.AddTagFast(CachedCharacter->GetMovementState());
 
 	RefreshEssentialValues(DeltaSeconds);
 	RefreshTrajectory(DeltaSeconds);
@@ -172,10 +184,6 @@ void UGASPAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 	RefreshLayering(DeltaSeconds);
 	RefreshMovementDirection(DeltaSeconds);
 	RefreshTargetRotation();
-
-	if (bUseExperimentalStateMachine)
-	{
-	}
 
 	if (LocomotionAction == LocomotionActionTags::Ragdoll)
 	{
@@ -263,7 +271,7 @@ float UGASPAnimInstance::GetMatchingBlendTime() const
 {
 	if (MovementMode == MovementModeTags::InAir)
 	{
-		return GetLandVelocity() > 100.f ? .15f : .5f;
+		return CharacterInfo.Velocity.Z > 100.f ? .15f : .5f;
 	}
 
 	return PreviousMovementMode == MovementModeTags::Grounded ? .5f : .2f;
@@ -366,7 +374,7 @@ bool UGASPAnimInstance::IsPivoting() const
 
 bool UGASPAnimInstance::IsMoving() const
 {
-	return MovementState == EMovementState::Moving;
+	return MovementState == MovementStateTags::Moving;
 }
 
 bool UGASPAnimInstance::ShouldTurnInPlace() const
@@ -389,23 +397,18 @@ bool UGASPAnimInstance::ShouldSpin() const
 
 bool UGASPAnimInstance::JustLanded_Light() const
 {
-	return FMath::Abs(CharacterInfo.Velocity.Z) < FMath::Abs(HeavyLandSpeedThreshold) && bLanded;
+	return FMath::Abs(PreviousCharacterInfo.Velocity.Z) < FMath::Abs(HeavyLandSpeedThreshold) && bLanded;
 }
 
 bool UGASPAnimInstance::JustLanded_Heavy() const
 {
-	return FMath::Abs(CharacterInfo.Velocity.Z) >= FMath::Abs(HeavyLandSpeedThreshold) && bLanded;
+	return FMath::Abs(PreviousCharacterInfo.Velocity.Z) >= FMath::Abs(HeavyLandSpeedThreshold) && bLanded;
 }
 
 bool UGASPAnimInstance::JustTraversed() const
 {
 	return !IsSlotActive(AnimNames.AnimationSlotName) && GetCurveValue(AnimNames.MovingTraversalCurveName) > 0.f &&
 		GetTrajectoryTurnAngle() <= 50.f;
-}
-
-float UGASPAnimInstance::GetLandVelocity() const
-{
-	return CharacterInfo.Velocity.Z;
 }
 
 bool UGASPAnimInstance::PlayLand() const

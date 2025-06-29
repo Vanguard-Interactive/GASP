@@ -179,7 +179,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	float DrawDebugDuration{0.f};
 #endif
-	
+
 protected:
 	/**
 	 * Callback executed when chooser data is asynchronously loaded
@@ -256,7 +256,7 @@ protected:
 
 	/** Tags that prevent specific traversal actions from being selected */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Traversal")
-	TMap<FGameplayTag, FName> BannedTags{};
+	FName BannedTag{};
 
 	/** Delay before re-enabling movement correction after traversal */
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category="Traversal")
@@ -346,7 +346,7 @@ public:
 	FCollisionQueryParams GetQueryParams() const;
 
 	UFUNCTION(BlueprintCallable, Category="Traversal")
-	bool CompareTag(TArray<FName> TagsToCompare, const FGameplayTag& RootTag) const;
+	bool CompareTag(TArray<FName> TagsToCompare) const;
 	/**
 	 * Attempts to perform a traversal action based on input parameters
 	 * Performs environment detection, animation selection, and initiates traversal

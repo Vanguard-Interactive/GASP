@@ -205,7 +205,7 @@ FTraversalResult UGASPTraversalComponent::TryTraversalAction(FTraversalCheckInpu
 		TryAndCalculateLedges(Hit, NewTraversalCheckResult);
 	}
 
-	if (CompareTag(TagsToCompare, TraversalCheckResult.ActionType))
+	if (CompareTag(TagsToCompare))
 	{
 		return {true, false};
 	}
@@ -478,14 +478,6 @@ void UGASPTraversalComponent::PerformTraversalAction_Implementation()
 
 	OnTraversalStart();
 
-	// const auto MontageProxy{
-	// 	UPlayMontageCallbackProxy::CreateProxyObjectForPlayMontage(
-	// 		MeshComponent.Get(), const_cast<UAnimMontage*>(TraversalCheckResult.ChosenMontage.Get()),
-	// 		TraversalCheckResult.PlayRate, TraversalCheckResult.StartTime)
-	// };
-	// MontageProxy->OnCompleted.AddDynamic(this, &ThisClass::OnCompleteTraversal);
-	// MontageProxy->OnInterrupted.AddDynamic(this, &ThisClass::OnCompleteTraversal);
-
 	UAnimMontage* MontageToPlay{const_cast<UAnimMontage*>(TraversalCheckResult.ChosenMontage.Get())};
 	AnimInstance->Montage_Play(MontageToPlay, TraversalCheckResult.PlayRate, EMontagePlayReturnType::MontageLength,
 	                           TraversalCheckResult.StartTime);
@@ -665,18 +657,16 @@ FCollisionQueryParams UGASPTraversalComponent::GetQueryParams() const
 	return QueryParams;
 }
 
-bool UGASPTraversalComponent::CompareTag(TArray<FName> TagsToCompare, const FGameplayTag& RootTag) const
+bool UGASPTraversalComponent::CompareTag(TArray<FName> TagsToCompare) const
 {
-	const FName* TagToCheck = BannedTags.Find(RootTag);
-
-	if (!TagToCheck || !TagToCheck->IsValid())
+	if (BannedTag.IsNone())
 	{
 		return false;
 	}
 
 	for (auto& Tag : TagsToCompare)
 	{
-		if (Tag == *TagToCheck)
+		if (Tag == BannedTag)
 		{
 			return true;
 		}

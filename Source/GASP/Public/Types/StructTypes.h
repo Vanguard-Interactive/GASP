@@ -21,19 +21,13 @@ struct GASP_API FGaitSettings
 	float GetSpeed(const EGait Gait, const FVector& Velocity, const FRotator& ActorRotation,
 	               const bool bIsCrouched = false) const
 	{
-		const FVector& SpeedRange{bIsCrouched ? CrouchSpeed : GetSpeedRangeForGait(Gait)};
+		const FVector& SpeedRange{bIsCrouched ? CrouchSpeed : StandingSpeed.FindRef(Gait)};
 		return UE_REAL_TO_FLOAT(InterpolateSpeedForDirection(SpeedRange, Velocity, ActorRotation));
 	}
 
 	UCurveVector* GetMovementCurve() const
 	{
 		return MovementCurve.Get();
-	}
-
-	FVector GetSpeedRangeForGait(EGait Gait) const
-	{
-		static const FVector GaitSpeeds[]{WalkSpeed, RunSpeed, SprintSpeed};
-		return Gait >= EGait::Walk && Gait <= EGait::Sprint ? GaitSpeeds[static_cast<int32>(Gait)] : RunSpeed;
 	}
 
 	float InterpolateSpeedForDirection(const FVector& SpeedRange, const FVector& Velocity,
@@ -53,13 +47,11 @@ struct GASP_API FGaitSettings
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly,
 		meta = (Description = "X = Forward Speed, Y = Strafe Speed, Z = Backwards Speed"))
-	FVector WalkSpeed{200.f, 180.f, 150.f};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly,
-		meta = (Description = "X = Forward Speed, Y = Strafe Speed, Z = Backwards Speed"))
-	FVector RunSpeed{450.f, 400.f, 350.f};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly,
-		meta = (Description = "X = Forward Speed, Y = Strafe Speed, Z = Backwards Speed"))
-	FVector SprintSpeed{700.f, 0.f, 0.f};
+	TMap<EGait, FVector> StandingSpeed{
+		{EGait::Walk, {200.f, 180.f, 150.f}},
+		{EGait::Run, {450.f, 400.f, 350.f}},
+		{EGait::Sprint, {700.f, 0.f, 0.f}}
+	};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly,
 		meta = (Description = "X = Forward Speed, Y = Strafe Speed, Z = Backwards Speed"))
 	FVector CrouchSpeed{225.f, 200.f, 180.f};
