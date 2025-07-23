@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+
 #include "EnumTypes.generated.h"
 
 /* Returns the enumeration index as number. */

@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "AnimGraphNode_BlendListBase.h"
 #include "Nodes/AnimNode_GameplayTagsBlend.h"
 #include "AnimGraphNode_GameplayTagsBlend.generated.h"

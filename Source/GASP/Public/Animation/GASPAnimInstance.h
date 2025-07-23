@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/GASPAnimInstanceProxy.h"
 #include "Animation/AnimExecutionContext.h"
@@ -13,6 +12,7 @@
 #include "PoseSearch/PoseSearchLibrary.h"
 #include "PoseSearch/PoseSearchTrajectoryLibrary.h"
 #include "Types/StructTypes.h"
+#include "Types/TagTypes.h"
 #include "GASPAnimInstance.generated.h"
 
 /**

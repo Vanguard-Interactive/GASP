@@ -2,9 +2,7 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
-#include "Components/GASPTraversalComponent.h"
 #include "GameFramework/Character.h"
 #include "Types/EnumTypes.h"
 #include "Types/TagTypes.h"
@@ -17,8 +15,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRotationModeChanged, ERotationMod
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGaitChanged, EGait, OldGait);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMovementStateChanged, FGameplayTag
-                                            , OldMovementState);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMovementStateChanged, FGameplayTag, OldMovementState);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStanceModeChanged, FGameplayTag, OldStanceMode);
 
@@ -26,15 +23,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLocomotionActionChanged, FGamepla
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMovementModeChanged, FGameplayTag, OldMovementMode);
 
-class UGASPCharacterMovementComponent;
-
 UCLASS()
 class GASP_API AGASPCharacter : public ACharacter
 {
 	GENERATED_BODY()
-
-	FTimerHandle LandedHandle;
-
 
 	UFUNCTION(BlueprintSetter)
 	void SetMovementMode(const FGameplayTag NewMovementMode, bool bForce = false);
@@ -43,10 +35,10 @@ class GASP_API AGASPCharacter : public ACharacter
 
 protected:
 	UPROPERTY(EditAnywhere, Category="PoseSearchData|Choosers", BlueprintReadOnly)
-	TObjectPtr<UChooserTable> OverlayTable{nullptr};
+	TObjectPtr<class UChooserTable> OverlayTable{nullptr};
 
 	UPROPERTY(BlueprintReadOnly, Transient)
-	TObjectPtr<UGASPCharacterMovementComponent> MovementComponent{};
+	TObjectPtr<class UGASPCharacterMovementComponent> MovementComponent{};
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<class UMotionWarpingComponent> MotionWarpingComponent{};
@@ -96,10 +88,6 @@ protected:
 	TObjectPtr<UAnimMontage> GetUpMontageBack{};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "State|Character")
 	uint8 bLimitInitialRagdollSpeed : 1{false};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "State|Character")
-	FGameplayTag FoleyJumpTag{FoleyTags::Jump};
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "State|Character")
-	FGameplayTag FoleyLandTag{FoleyTags::Land};
 
 	void SetReplicatedAcceleration(const FVector& NewAcceleration);
 
@@ -110,20 +98,9 @@ protected:
 	                                              const FVector& PreviousFloorContactNormal,
 	                                              const FVector& PreviousLocation, float TimeDelta) override;
 
-	UFUNCTION(BlueprintNativeEvent)
-	void OnMovementUpdateSimulatedProxy(float DeltaSeconds, FVector OldLocation, FVector OldVelocity);
-
-	UFUNCTION(BlueprintImplementableEvent)
-	void PlayAudioEvent(const FGameplayTag GameplayTag, const float VolumeMultiplier = 1.f,
-	                    const float PitchMultiplier = 1.f);
-
-	virtual void OnJumped_Implementation() override;
-
-	virtual void Landed(const FHitResult& Hit) override;
-
 	/** Please add a function description */
 	UFUNCTION(BlueprintPure, Category = "Traversal")
-	FTraversalCheckInputs GetTraversalCheckInputs() const;
+	struct FTraversalCheckInputs GetTraversalCheckInputs() const;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta=(ClampMin="0.0", ClampMax="1.0"))
 	float AnalogMovementThreshold{.7f};
@@ -297,8 +274,7 @@ private:
 	UFUNCTION()
 	void OnRep_RotationMode(const ERotationMode& OldRotationMode);
 	UFUNCTION()
-	void OnRep_MovementState(const FGameplayTag
-		& OldMovementState);
+	void OnRep_MovementState(const FGameplayTag& OldMovementState);
 	UFUNCTION()
 	void OnRep_LocomotionAction(const FGameplayTag& OldLocomotionAction);
 

@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "GASPBlueprintLibrary.generated.h"
@@ -21,7 +20,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "GASP|Utility",
 		meta = (DefaultToSelf = "Character", AutoCreateRefTerm = "CurveName", ReturnDisplayName = "Curve Value"))
 	static float GetAnimationCurveValueFromCharacter(const ACharacter* Character, const FName& CurveName);
-
 
 	UFUNCTION(BlueprintPure, Category = "GASP|Utility",
 		meta = (AutoCreateRefTerm = "Tag", ReturnDisplayName = "Tag Name"))

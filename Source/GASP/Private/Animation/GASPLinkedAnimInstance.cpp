@@ -2,6 +2,7 @@
 
 
 #include "Animation/GASPLinkedAnimInstance.h"
+#include "Actors/GASPCharacter.h"
 #include "Animation/GASPAnimInstance.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GASPLinkedAnimInstance)

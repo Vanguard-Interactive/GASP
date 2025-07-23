@@ -2,6 +2,8 @@
 
 
 #include "GASPCharacterExample.h"
+
+#include "Components/GASPTraversalComponent.h"
 #include "GameFramework/GameplayCameraComponent.h"
 
 // Sets default values

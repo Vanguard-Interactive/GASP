@@ -2,12 +2,10 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Actors/GASPCharacter.h"
 #include "Animation/AnimInstanceProxy.h"
 #include "GASPAnimInstanceProxy.generated.h"
 
-
+class AGASPCharacter;
 /**
  * 
  */

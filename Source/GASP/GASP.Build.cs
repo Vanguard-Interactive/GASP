@@ -29,6 +29,7 @@ public class GASP : ModuleRules
 			"BlendStack",
 			"PhysicsCore",
 			"AnimGraphRuntime",
+			"Niagara",
 		});
 
 		if (Target.Type == TargetRules.TargetType.Editor)

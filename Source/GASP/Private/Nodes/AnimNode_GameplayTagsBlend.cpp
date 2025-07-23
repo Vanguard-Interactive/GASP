@@ -3,6 +3,8 @@
 
 #include "Nodes/AnimNode_GameplayTagsBlend.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(AnimNode_GameplayTagsBlend)
+
 int32 FAnimNode_GameplayTagsBlend::GetActiveChildIndex()
 {
 	const FGameplayTag& CurrentActiveTag{GetActiveTag()};

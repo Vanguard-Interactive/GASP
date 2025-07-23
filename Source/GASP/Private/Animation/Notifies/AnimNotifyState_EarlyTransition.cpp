@@ -24,7 +24,7 @@ void UAnimNotifyState_EarlyTransition::NotifyTick(USkeletalMeshComponent* MeshCo
 		return;
 	}
 
-	UGASPAnimInstance* AnimInstance = static_cast<UGASPAnimInstance*>(MeshComp->GetAnimInstance());
+	auto* AnimInstance = static_cast<UGASPAnimInstance*>(MeshComp->GetAnimInstance());
 	if (!IsValid(AnimInstance))
 	{
 		return;

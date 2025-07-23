@@ -16,8 +16,7 @@
 AGASPCharacter::AGASPCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UGASPCharacterMovementComponent>(CharacterMovementComponentName))
 {
-	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need
-	// it.
+	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 	bUseControllerRotationRoll = bUseControllerRotationPitch = bUseControllerRotationYaw = false;
 
@@ -41,11 +40,6 @@ void AGASPCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	check(MovementComponent)
-
-	if (GetLocalRole() == ROLE_SimulatedProxy)
-	{
-		OnCharacterMovementUpdated.AddUniqueDynamic(this, &ThisClass::OnMovementUpdateSimulatedProxy);
-	}
 
 	OverlayModeChanged.AddDynamic(this, &ThisClass::OnOverlayModeChanged);
 
@@ -337,7 +331,6 @@ void AGASPCharacter::SetOverlayMode(const FGameplayTag NewOverlayMode, const boo
 			Server_SetOverlayMode(NewOverlayMode);
 		}
 		OverlayModeChanged.Broadcast(OldOverlayMode);
-		// OnOverlayModeChanged(OldOverlayMode);
 	}
 }
 
@@ -382,24 +375,6 @@ void AGASPCharacter::OnWalkingOffLedge_Implementation(const FVector& PreviousFlo
 	UnCrouch();
 }
 
-void AGASPCharacter::OnJumped_Implementation()
-{
-	Super::OnJumped_Implementation();
-
-	const float VolumeMultiplier = FMath::GetMappedRangeValueClamped<float, float>(
-		{0.f, 500.f}, {.1f, 1.5f}, GetVelocity().Size2D());
-	PlayAudioEvent(FoleyJumpTag, VolumeMultiplier);
-}
-
-void AGASPCharacter::Landed(const FHitResult& Hit)
-{
-	Super::Landed(Hit);
-
-	const float VolumeMultiplier = FMath::GetMappedRangeValueClamped<float, float>(
-		{-500.f, -900.f}, {.1f, 1.5f}, GetVelocity().Z);
-	PlayAudioEvent(FoleyLandTag, VolumeMultiplier);
-}
-
 bool AGASPCharacter::HasFullMovementInput() const
 {
 	if (MovementStickMode == EAnalogStickBehaviorMode::FixedWalkRun || MovementStickMode ==
@@ -434,27 +409,6 @@ void AGASPCharacter::RefreshGait()
 	}
 
 	SetGait(NewGait);
-}
-
-void AGASPCharacter::OnMovementUpdateSimulatedProxy_Implementation(float DeltaSeconds, FVector OldLocation,
-                                                                   const FVector OldVelocity)
-{
-	if (MovementMode != PreviousMovementMode)
-	{
-		if (float VolumeMultiplier; MovementMode == MovementModeTags::Grounded)
-		{
-			VolumeMultiplier = FMath::GetMappedRangeValueClamped<float, float>(
-				{-500.f, -900.f}, {.2f, 1.5f}, OldVelocity.Z);
-			PlayAudioEvent(FoleyJumpTag, VolumeMultiplier);
-		}
-		else if (MovementMode == MovementModeTags::InAir)
-		{
-			VolumeMultiplier = FMath::GetMappedRangeValueClamped<float, float>(
-				{.0f, 500.f}, {.2f, 1.f}, OldVelocity.Size2D());
-			PlayAudioEvent(FoleyLandTag, VolumeMultiplier);
-		}
-	}
-	PreviousMovementMode = MovementMode;
 }
 
 FTraversalResult AGASPCharacter::TryTraversalAction() const

@@ -31,7 +31,7 @@ void UAnimNotifyState_MontageBlendOut::NotifyTick(USkeletalMeshComponent* MeshCo
 		return;
 	}
 
-	const AGASPCharacter* Character = static_cast<AGASPCharacter*>(MeshComp->GetOwner());
+	const auto* Character = static_cast<AGASPCharacter*>(MeshComp->GetOwner());
 	if (!IsValid(Character))
 	{
 		return;

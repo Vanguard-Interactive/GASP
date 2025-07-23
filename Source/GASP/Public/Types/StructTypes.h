@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+
 #include "Types/EnumTypes.h"
 #include "GameplayTags.h"
 #include "Utils/GASPMath.h"

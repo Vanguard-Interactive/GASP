@@ -348,6 +348,7 @@ bool UGASPAnimInstance::IsPivoting() const
 		};
 
 		const FVector2D* MinMax = GaitRanges.Find(Gait);
+		
 		return Speed > MinMax->X && Speed < MinMax->Y;
 	};
 
@@ -367,7 +368,7 @@ bool UGASPAnimInstance::IsPivoting() const
 		return FMath::GetMappedRangeValueClamped<float, float>({InOut->X, InOut->Y},
 		                                                       {InOut->Z, InOut->W}, Speed);
 	};
-
+	
 	return InRange(CharacterInfo.Speed) && FMath::Abs(GetTrajectoryTurnAngle()) >= ClampedSpeed(CharacterInfo.Speed) &&
 		IsMoving();
 }
@@ -382,8 +383,8 @@ bool UGASPAnimInstance::ShouldTurnInPlace() const
 	float YawDifference = CharacterInfo.ActorTransform.Rotator().Yaw - CharacterInfo.RootTransform.Rotator().Yaw;
 	YawDifference = FRotator::NormalizeAxis(YawDifference);
 
-	return FMath::Abs(YawDifference) >= CharacterInfo.MaxTurnAngle && RotationMode == ERotationMode::Aim &&
-		!IsMoving();
+	return FMath::Abs(YawDifference) >= CharacterInfo.MaxTurnAngle && (RotationMode == ERotationMode::Aim || (
+		MovementState == MovementStateTags::Idle && PreviousMovementState == MovementStateTags::Moving));
 }
 
 bool UGASPAnimInstance::ShouldSpin() const

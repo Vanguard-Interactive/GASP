@@ -2,9 +2,7 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Audio/GASPFoleyAudioBankPrimaryDataAsset.h"
-#include "UObject/Object.h"
+#include "GameplayTagContainer.h"
 #include "GASPFoleyAudioBankInterface.generated.h"
 
 /**
@@ -22,7 +20,7 @@ class GASP_API IGASPFoleyAudioBankInterface
 
 public:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Foley|Audio")
-	UGASPFoleyAudioBankPrimaryDataAsset* GetFoleyAudioBank();
+	UGASPFootstepEffectsSet* GetFootstepEffects(FGameplayTag GameplayTag);
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="Foley|Audio")
-	bool CanPlayFootstepSounds();
+	bool CanPlayFootstepEffects();
 };

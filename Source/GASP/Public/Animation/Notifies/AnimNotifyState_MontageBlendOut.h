@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "Types/EnumTypes.h"
 #include "AnimNotifyState_MontageBlendOut.generated.h"
