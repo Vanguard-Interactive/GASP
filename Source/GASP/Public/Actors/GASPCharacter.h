@@ -9,19 +9,11 @@
 #include "Types/StructTypes.h"
 #include "GASPCharacter.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnOverlayModeChanged, FGameplayTag, OldOverlayMode);
-
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRotationModeChanged, ERotationMode, OldRotationMode);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGaitChanged, EGait, OldGait);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMovementStateChanged, FGameplayTag, OldMovementState);
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStanceModeChanged, FGameplayTag, OldStanceMode);
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLocomotionActionChanged, FGameplayTag, OldLocomotionAction);
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMovementModeChanged, FGameplayTag, OldMovementMode);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStateChanged, FGameplayTag, OldGameplayTag);
 
 UCLASS()
 class GASP_API AGASPCharacter : public ACharacter
@@ -36,7 +28,9 @@ class GASP_API AGASPCharacter : public ACharacter
 protected:
 	UPROPERTY(EditAnywhere, Category="PoseSearchData|Choosers", BlueprintReadOnly)
 	TObjectPtr<class UChooserTable> OverlayTable{nullptr};
-
+	UPROPERTY(EditAnywhere, Category="PoseSearchData|Choosers", BlueprintReadOnly)
+	TObjectPtr<UChooserTable> PosesTable{nullptr};
+	
 	UPROPERTY(BlueprintReadOnly, Transient)
 	TObjectPtr<class UGASPCharacterMovementComponent> MovementComponent{};
 
@@ -68,6 +62,8 @@ protected:
 	FGameplayTag StanceMode{StanceTags::Standing};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_OverlayMode, Transient)
 	FGameplayTag OverlayMode{OverlayModeTags::Default};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_PoseMode, Transient)
+	FGameplayTag PoseMode{PoseModeTags::Default};
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_LocomotionAction, Transient)
 	FGameplayTag LocomotionAction{FGameplayTag::EmptyTag};
 
@@ -122,23 +118,30 @@ public:
 	bool IsDoingTraversal() const;
 
 	UPROPERTY(BlueprintAssignable)
-	FOnOverlayModeChanged OverlayModeChanged;
+	FOnStateChanged OverlayModeChanged;
+	UPROPERTY(BlueprintAssignable)
+	FOnStateChanged PoseModeChanged;
 	UPROPERTY(BlueprintAssignable)
 	FOnGaitChanged GaitChanged;
 	UPROPERTY(BlueprintAssignable)
 	FOnRotationModeChanged RotationModeChanged;
 	UPROPERTY(BlueprintAssignable)
-	FOnMovementStateChanged MovementStateChanged;
+	FOnStateChanged MovementStateChanged;
 	UPROPERTY(BlueprintAssignable)
-	FOnStanceModeChanged StanceModeChanged;
+	FOnStateChanged StanceModeChanged;
 	UPROPERTY(BlueprintAssignable)
-	FOnLocomotionActionChanged LocomotionActionChanged;
+	FOnStateChanged LocomotionActionChanged;
 	UPROPERTY(BlueprintAssignable)
-	FOnMovementModeChanged MovementModeChanged;
+	FOnStateChanged MovementModeChanged;
 
 	UFUNCTION(BlueprintNativeEvent)
 	void OnOverlayModeChanged(const FGameplayTag OldOverlayMode);
+	UFUNCTION(BlueprintNativeEvent)
+	void OnPoseModeChanged(const FGameplayTag OldPoseMode);
 
+	void LinkAnimInstance(const UChooserTable* DataTable, const FGameplayTag OldState, const FGameplayTag State);
+
+	
 	// Sets default values for this character's properties
 	explicit AGASPCharacter(const FObjectInitializer& ObjectInitializer);
 	AGASPCharacter() = default;
@@ -184,6 +187,10 @@ public:
 	UFUNCTION(Server, Reliable)
 	void Server_SetOverlayMode(const FGameplayTag NewOverlayMode);
 
+	UFUNCTION(BlueprintCallable)
+	void SetPoseMode(const FGameplayTag NewPoseMode, const bool bForce = false);
+	UFUNCTION(Server, Reliable)
+	void Server_SetPoseMode(const FGameplayTag NewPoseMode);
 
 	UFUNCTION(BlueprintCallable)
 	void SetLocomotionAction(const FGameplayTag NewLocomotionAction, const bool bForce = false);
@@ -192,7 +199,9 @@ public:
 
 	UFUNCTION(BlueprintPure)
 	virtual bool CanSprint();
-	UGASPCharacterMovementComponent* GetBCharacterMovement() const;
+
+	template<typename  T>
+	T* GetTypedCharacterMovement() const;
 
 	UFUNCTION(BlueprintGetter)
 	FORCEINLINE FVector GetReplicatedAcceleration() const
@@ -266,6 +275,8 @@ private:
 	UFUNCTION()
 	void OnRep_OverlayMode(const FGameplayTag& OldOverlayMode);
 	UFUNCTION()
+	void OnRep_PoseMode(const FGameplayTag& OldPoseMode);
+	UFUNCTION()
 	void OnRep_Gait(const EGait& OldGait);
 	UFUNCTION()
 	void OnRep_StanceMode(const FGameplayTag& OldStanceMode);
@@ -312,3 +323,9 @@ private:
 
 	void ConstraintRagdollSpeed() const;
 };
+
+template <typename T>
+T* AGASPCharacter::GetTypedCharacterMovement() const
+{
+	return static_cast<T*>(GetCharacterMovement());
+}

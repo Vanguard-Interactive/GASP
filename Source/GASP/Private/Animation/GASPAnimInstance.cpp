@@ -148,7 +148,8 @@ void UGASPAnimInstance::NativeInitializeAnimation()
 		return;
 	}
 	CachedCharacter->LandedDelegate.AddUniqueDynamic(this, &ThisClass::OnLanded);
-	CachedCharacter->OverlayModeChanged.AddUniqueDynamic(this, &ThisClass::OnOverlayChanged);
+	CachedCharacter->OverlayModeChanged.AddUniqueDynamic(this, &ThisClass::OnOverlayModeChanged);
+	CachedCharacter->PoseModeChanged.AddUniqueDynamic(this, &ThisClass::OnPoseModeChanged);
 }
 
 void UGASPAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)

@@ -195,8 +195,10 @@ public:
 	UFUNCTION()
 	void OnLanded(const FHitResult& HitResult);
 	UFUNCTION(BlueprintImplementableEvent)
-	void OnOverlayChanged(FGameplayTag OldOverlayMode);
-
+	void OnOverlayModeChanged(FGameplayTag OldOverlayMode);
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnPoseModeChanged(FGameplayTag OldGameplayTag);
+	
 	UFUNCTION(BlueprintPure, Category = "BlendStack", meta = (BlueprintThreadSafe))
 	EPoseSearchInterruptMode GetMatchingInterruptMode() const;
 	UFUNCTION(BlueprintPure, Category = "BlendStack", meta = (BlueprintThreadSafe))

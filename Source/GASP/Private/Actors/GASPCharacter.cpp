@@ -8,7 +8,7 @@
 #include "Components/GASPTraversalComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
-#include "Utils/GASPOverlayLayeringDataAsset.h"
+#include "Utils/GASPLinkedAnimInstanceSet.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GASPCharacter)
 
@@ -25,7 +25,6 @@ AGASPCharacter::AGASPCharacter(const FObjectInitializer& ObjectInitializer)
 
 	if (GetMesh())
 	{
-		GetMesh()->bEnableUpdateRateOptimizations = false;
 		GetMesh()->SetRelativeRotation_Direct({0.f, -90.f, 0.f});
 		GetMesh()->SetRelativeLocation_Direct({0.f, 0.f, -90.f});
 	}
@@ -42,10 +41,12 @@ void AGASPCharacter::BeginPlay()
 	check(MovementComponent)
 
 	OverlayModeChanged.AddDynamic(this, &ThisClass::OnOverlayModeChanged);
+	PoseModeChanged.AddDynamic(this, &ThisClass::OnPoseModeChanged);
 
 	SetGait(DesiredGait, true);
 	SetRotationMode(RotationMode, true);
 	SetOverlayMode(OverlayMode, true);
+	SetPoseMode(PoseMode, true);
 	SetLocomotionAction(FGameplayTag::EmptyTag, true);
 	SetMovementMode(MovementMode, true);
 	SetStanceMode(StanceMode, true);
@@ -55,7 +56,6 @@ void AGASPCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
 
-	OnCharacterMovementUpdated.RemoveAll(this);
 	GetWorld()->GetTimerManager().ClearAllTimersForObject(this);
 }
 
@@ -140,6 +140,7 @@ void AGASPCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	// Replicate to everyone
 	Parameters.Condition = COND_None;
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, OverlayMode, Parameters);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, PoseMode, Parameters);
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, RagdollTargetLocation, Parameters);
 }
 
@@ -290,8 +291,7 @@ void AGASPCharacter::Server_SetStanceMode_Implementation(const FGameplayTag NewS
 	SetStanceMode(NewStanceMode);
 }
 
-void AGASPCharacter::Server_SetMovementState_Implementation(const FGameplayTag
-	NewMovementState)
+void AGASPCharacter::Server_SetMovementState_Implementation(const FGameplayTag NewMovementState)
 {
 	SetMovementState(NewMovementState);
 }
@@ -314,11 +314,6 @@ bool AGASPCharacter::CanSprint()
 	return Dot > FMath::Cos(FMath::DegreesToRadians(50.f));
 }
 
-UGASPCharacterMovementComponent* AGASPCharacter::GetBCharacterMovement() const
-{
-	return static_cast<UGASPCharacterMovementComponent*>(GetCharacterMovement());
-}
-
 void AGASPCharacter::SetOverlayMode(const FGameplayTag NewOverlayMode, const bool bForce)
 {
 	if (NewOverlayMode != OverlayMode || bForce)
@@ -332,6 +327,26 @@ void AGASPCharacter::SetOverlayMode(const FGameplayTag NewOverlayMode, const boo
 		}
 		OverlayModeChanged.Broadcast(OldOverlayMode);
 	}
+}
+
+void AGASPCharacter::SetPoseMode(const FGameplayTag NewPoseMode, const bool bForce)
+{
+	if (NewPoseMode != PoseMode || bForce)
+	{
+		const auto OldOverlayMode{PoseMode};
+		PoseMode = NewPoseMode;
+		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, OverlayMode, this);
+		if (GetLocalRole() == ROLE_AutonomousProxy)
+		{
+			Server_SetOverlayMode(NewPoseMode);
+		}
+		PoseModeChanged.Broadcast(OldOverlayMode);
+	}
+}
+
+void AGASPCharacter::Server_SetPoseMode_Implementation(const FGameplayTag NewPoseMode)
+{
+	SetPoseMode(NewPoseMode);
 }
 
 void AGASPCharacter::SetLocomotionAction(const FGameplayTag NewLocomotionAction, const bool bForce)
@@ -447,36 +462,52 @@ FTraversalCheckInputs AGASPCharacter::GetTraversalCheckInputs() const
 	};
 }
 
-void AGASPCharacter::OnOverlayModeChanged_Implementation(const FGameplayTag OldOverlayMode)
+void AGASPCharacter::LinkAnimInstance(const UChooserTable* DataTable, const FGameplayTag OldState,
+                                      const FGameplayTag State)
 {
-	if (!OverlayTable)
+	if (!DataTable)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Can't change overlay"))
 		return;
 	}
 
-	StateContainer.RemoveTag(OldOverlayMode);
-	StateContainer.AddLeafTag(OverlayMode);
+	StateContainer.RemoveTag(OldState);
+	StateContainer.AddLeafTag(State);
 
 	USkeletalMeshComponent* MeshComponent = GetMesh();
 	if (!IsValid(MeshComponent))
 	{
 		return;
 	}
-	const UGASPOverlayLayeringDataAsset* DataAsset{
-		static_cast<UGASPOverlayLayeringDataAsset*>(
-			UChooserFunctionLibrary::EvaluateChooser(this, OverlayTable, UGASPOverlayLayeringDataAsset::StaticClass()))
+	const UGASPLinkedAnimInstanceSet* DataAsset{
+		static_cast<UGASPLinkedAnimInstanceSet*>(
+			UChooserFunctionLibrary::EvaluateChooser(this, DataTable, UGASPLinkedAnimInstanceSet::StaticClass()))
 	};
 
 	if (IsValid(DataAsset))
 	{
-		MeshComponent->LinkAnimClassLayers(DataAsset->GetOverlayAnimInstance());
+		UE_LOG(LogTemp, Warning, TEXT("instance [%s]"), *DataAsset->GetName())
+		MeshComponent->LinkAnimClassLayers(DataAsset->GetAnimInstance());
 	}
+}
+
+void AGASPCharacter::OnPoseModeChanged_Implementation(const FGameplayTag OldPoseMode)
+{
+	LinkAnimInstance(PosesTable, OldPoseMode, PoseMode);
+}
+
+void AGASPCharacter::OnOverlayModeChanged_Implementation(const FGameplayTag OldOverlayMode)
+{
+	LinkAnimInstance(OverlayTable, OldOverlayMode, OverlayMode);
 }
 
 void AGASPCharacter::OnRep_OverlayMode(const FGameplayTag& OldOverlayMode)
 {
 	OverlayModeChanged.Broadcast(OldOverlayMode);
+}
+
+void AGASPCharacter::OnRep_PoseMode(const FGameplayTag& OldPoseMode)
+{
+	PoseModeChanged.Broadcast(OldPoseMode);
 }
 
 void AGASPCharacter::OnRep_Gait(const EGait& OldGait)

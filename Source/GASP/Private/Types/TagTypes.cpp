@@ -10,11 +10,17 @@ namespace MovementModeTags
 	UE_DEFINE_GAMEPLAY_TAG(InAir, FName{TEXTVIEW("GASP.MovementMode.InAir")});
 }
 
+namespace PoseModeTags
+{
+	UE_DEFINE_GAMEPLAY_TAG(Default, FName{TEXTVIEW("GASP.PoseMode.Default")})
+	UE_DEFINE_GAMEPLAY_TAG(Normal, FName{TEXTVIEW("GASP.PoseMode.Normal")})
+	UE_DEFINE_GAMEPLAY_TAG(Masculine, FName{TEXTVIEW("GASP.PoseMode.Masculine")})
+	UE_DEFINE_GAMEPLAY_TAG(Feminine, FName{TEXTVIEW("GASP.PoseMode.Feminine")})
+}
+
 namespace OverlayModeTags
 {
 	UE_DEFINE_GAMEPLAY_TAG(Default, FName{TEXTVIEW("GASP.OverlayMode.Default")})
-	UE_DEFINE_GAMEPLAY_TAG(Masculine, FName{TEXTVIEW("GASP.OverlayMode.Masculine")})
-	UE_DEFINE_GAMEPLAY_TAG(Feminine, FName{TEXTVIEW("GASP.OverlayMode.Feminine")})
 	UE_DEFINE_GAMEPLAY_TAG(Injured, FName{TEXTVIEW("GASP.OverlayMode.Injured")})
 	UE_DEFINE_GAMEPLAY_TAG(HandsTied, FName{TEXTVIEW("GASP.OverlayMode.HandsTied")})
 	UE_DEFINE_GAMEPLAY_TAG(Rifle, FName{TEXTVIEW("GASP.OverlayMode.Rifle")})

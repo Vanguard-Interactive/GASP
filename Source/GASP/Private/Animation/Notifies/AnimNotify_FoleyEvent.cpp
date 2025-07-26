@@ -125,12 +125,12 @@ FString UAnimNotify_FoleyEvent::GetNotifyName_Implementation() const
 bool UAnimNotify_FoleyEvent::CanPlayFootstepEffects(const USkeletalMeshComponent* MeshComponent) const
 {
 	auto* Owner = MeshComponent->GetOwner();
-	if (!IsValid(Owner) || !Owner->Implements<UGASPFoleyAudioBankInterface>())
+	if (!IsValid(Owner))
 	{
 		return false;
 	}
 
-	if (MovementTags.HasTag(Event))
+	if (MovementTags.HasTag(Event) && Owner->Implements<UGASPFoleyAudioBankInterface>())
 	{
 		return IGASPFoleyAudioBankInterface::Execute_CanPlayFootstepEffects(Owner);
 	}
